@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { accountOpeningPrices, prestations, urgencySupplements } from "@/lib/prestations";
+import { createClient } from "../../lib/supabase/client";
 import "./nouveau-dossier.css";
 
 type AccountType = keyof typeof accountOpeningPrices;
@@ -20,6 +21,32 @@ type FormState = {
   adverseName: string;
   adverseEmail: string;
   adversePhone: string;
+};
+
+type CheckoutResult = {
+  success?: boolean;
+  url?: string;
+  caseId?: string;
+  reference?: string;
+  amountCents?: number;
+  error?: string;
+};
+
+const DRAFT_KEY = "lexia_case_checkout_draft_v1";
+const CASE_KEY = "lexia_case_checkout_case_id_v1";
+
+const defaultForm: FormState = {
+  accountType: "particulier",
+  category: "",
+  subject: "",
+  description: "",
+  objective: "",
+  urgency: "normale",
+  adverseKnown: false,
+  adverseType: "particulier",
+  adverseName: "",
+  adverseEmail: "",
+  adversePhone: "",
 };
 
 const categories = [
@@ -40,23 +67,34 @@ const urgencyOptions = [
 ];
 
 export default function NouveauDossierPage() {
+  const supabase = useMemo(() => createClient(), []);
   const [step, setStep] = useState(1);
   const [files, setFiles] = useState<File[]>([]);
-  const [submitted, setSubmitted] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [form, setForm] = useState<FormState>({
-    accountType: "particulier",
-    category: "",
-    subject: "",
-    description: "",
-    objective: "",
-    urgency: "normale",
-    adverseKnown: false,
-    adverseType: "particulier",
-    adverseName: "",
-    adverseEmail: "",
-    adversePhone: "",
-  });
+  const [form, setForm] = useState<FormState>(defaultForm);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+
+  useEffect(() => {
+    const draft = window.localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft) as { form?: Partial<FormState>; selectedServiceIds?: string[]; step?: number };
+        if (parsed.form) setForm({ ...defaultForm, ...parsed.form });
+        if (Array.isArray(parsed.selectedServiceIds)) setSelectedServiceIds(parsed.selectedServiceIds);
+        if (typeof parsed.step === "number") setStep(Math.min(5, Math.max(1, parsed.step)));
+      } catch {
+        window.localStorage.removeItem(DRAFT_KEY);
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paiement") === "annule") {
+      setStep(5);
+      setCheckoutNotice("Le paiement a été annulé. Aucun débit n’a été effectué. Vous pouvez vérifier le dossier puis réessayer.");
+    }
+  }, []);
 
   const urgency = urgencyOptions.find((option) => option.value === form.urgency)!;
   const selectedCategory = useMemo(() => categories.find((category) => category.value === form.category), [form.category]);
@@ -65,7 +103,12 @@ export default function NouveauDossierPage() {
   const servicesTotal = selectedServices.reduce((total, service) => total + service.price, 0);
   const totalPrice = openingPrice + servicesTotal;
 
+  function persistDraft(nextStep = step) {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, selectedServiceIds, step: nextStep }));
+  }
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setCheckoutError("");
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -85,34 +128,65 @@ export default function NouveauDossierPage() {
 
   function next() {
     if (!canContinue()) return;
-    setStep((current) => Math.min(5, current + 1));
+    const nextStep = Math.min(5, step + 1);
+    persistDraft(nextStep);
+    setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function back() {
-    setStep((current) => Math.max(1, current - 1));
+    const previousStep = Math.max(1, step - 1);
+    persistDraft(previousStep);
+    setStep(previousStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+    if (checkoutLoading) return;
 
-  if (submitted) {
-    return (
-      <main className="case-success-page">
-        <section className="case-success-card">
-          <div className="case-success-icon">✓</div>
-          <span>DEMANDE PRÉPARÉE</span>
-          <h1>Votre dossier est prêt à être transmis.</h1>
-          <p>Le montant récapitulatif est de {totalPrice} € TTC, dont {openingPrice} € pour l’ouverture du dossier et {servicesTotal} € de prestations complémentaires.</p>
-          {selectedServices.length > 0 && <div className="success-services">{selectedServices.map((service) => <span key={service.id}>✓ {service.shortTitle}</span>)}</div>}
-          <div className="case-success-actions"><Link href="/tableau-de-bord">Retour à mon espace</Link><button onClick={() => setSubmitted(false)}>Modifier</button></div>
-        </section>
-      </main>
-    );
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    setCheckoutNotice("");
+    persistDraft(5);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.assign("/connexion?redirect=/nouveau-dossier");
+        return;
+      }
+
+      const caseId = window.localStorage.getItem(CASE_KEY) || undefined;
+      const { data, error } = await supabase.functions.invoke<CheckoutResult>("create-stripe-checkout", {
+        body: {
+          caseId,
+          accountType: form.accountType,
+          category: form.category,
+          subject: form.subject,
+          description: form.description,
+          objective: form.objective,
+          urgency: form.urgency,
+          adverseKnown: form.adverseKnown,
+          adverseType: form.adverseType,
+          adverseName: form.adverseName,
+          adverseEmail: form.adverseEmail,
+          adversePhone: form.adversePhone,
+          selectedServiceIds,
+          files: files.map((file) => ({ name: file.name, size: file.size, type: file.type })),
+        },
+      });
+
+      if (error) throw new Error(error.message || "La page de paiement n’a pas pu être créée.");
+      if (!data?.success || !data.url || !data.caseId) throw new Error(data?.error || "Stripe n’a pas retourné de page de paiement.");
+
+      window.localStorage.setItem(CASE_KEY, data.caseId);
+      window.location.assign(data.url);
+    } catch (checkoutFailure) {
+      setCheckoutError(checkoutFailure instanceof Error ? checkoutFailure.message : "Le paiement ne peut pas être ouvert pour le moment.");
+      setCheckoutLoading(false);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
   }
 
   return (
@@ -128,7 +202,7 @@ export default function NouveauDossierPage() {
           <h1>Déposez votre dossier en quelques étapes.</h1>
           <p>Chaque information nous aide à comprendre votre situation et à vous répondre plus précisément.</p>
           <div className="case-steps">
-            {[[1, "Votre situation"], [2, "Les faits & urgence"], [3, "Partie adverse"], [4, "Documents"], [5, "Prestations & récapitulatif"]].map(([number, label]) => (
+            {[[1, "Votre situation"], [2, "Les faits & urgence"], [3, "Partie adverse"], [4, "Documents"], [5, "Prestations & paiement"]].map(([number, label]) => (
               <div key={number} className={`case-step ${step === number ? "active" : ""} ${step > Number(number) ? "done" : ""}`}>
                 <span>{step > Number(number) ? "✓" : number}</span>
                 <div><b>{label}</b><small>Étape {number} sur 5</small></div>
@@ -206,14 +280,15 @@ export default function NouveauDossierPage() {
                 <p className="case-intro">Contrats, factures, courriers, captures, photos ou décisions.</p>
                 <label className="case-upload-zone"><input type="file" multiple onChange={addFiles} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" /><span>⇧</span><b>Choisir des fichiers</b><small>PDF, Word, JPG ou PNG · 10 fichiers maximum</small></label>
                 <div className="case-file-list">{files.length === 0 && <p>Aucun document ajouté.</p>}{files.map((file, index) => <div key={`${file.name}-${index}`}><span>▤</span><div><b>{file.name}</b><small>{Math.max(1, Math.round(file.size / 1024))} Ko</small></div><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Supprimer</button></div>)}</div>
+                <p className="case-intro">Les fichiers pourront également être ajoutés depuis votre espace après le paiement.</p>
               </div>
             )}
 
             {step === 5 && (
               <div className="case-section">
-                <span className="case-eyebrow">ÉTAPE 5 · PRESTATIONS & RÉCAPITULATIF</span>
-                <h2>Ajoutez une prestation si nécessaire.</h2>
-                <p className="case-intro">Les prestations sont facultatives. Vous pouvez en sélectionner plusieurs ou transmettre uniquement l’ouverture du dossier.</p>
+                <span className="case-eyebrow">ÉTAPE 5 · PRESTATIONS & PAIEMENT</span>
+                <h2>Vérifiez votre dossier avant le paiement sécurisé.</h2>
+                <p className="case-intro">Les prestations sont facultatives. Le montant est recalculé et vérifié côté serveur avant l’ouverture de Stripe.</p>
                 <div className="case-service-grid">
                   {prestations.map((service) => {
                     const selected = selectedServiceIds.includes(service.id);
@@ -236,13 +311,15 @@ export default function NouveauDossierPage() {
                   <div><span>Ouverture du dossier</span><b>{openingPrice} €</b></div>
                   {selectedServices.map((service) => <div key={service.id}><span>{service.shortTitle}</span><b>{service.price} €</b></div>)}
                 </div>
-                <div className="case-payment-summary"><div><small>TOTAL À VALIDER</small><b>Ouverture et prestations sélectionnées</b></div><strong>{totalPrice} € TTC</strong></div>
-                <p className="qualified-note">Les prestations de consultation personnalisée ou de rédaction juridique sont prises en charge ou validées par un professionnel juridiquement habilité selon la nature du dossier.</p>
+                <div className="case-payment-summary"><div><small>TOTAL À PAYER</small><b>Paiement sécurisé par Stripe</b></div><strong>{totalPrice} € TTC</strong></div>
+                <p className="qualified-note">Le paiement n’est considéré comme reçu qu’après confirmation sécurisée de Stripe. Les prestations de consultation personnalisée ou de rédaction juridique sont prises en charge ou validées par un professionnel juridiquement habilité selon la nature du dossier.</p>
                 <label className="case-consent"><input type="checkbox" required /><span>Je confirme l’exactitude des informations transmises et accepte les conditions du service.</span></label>
+                {checkoutNotice && <div className="case-checkout-notice">{checkoutNotice}</div>}
+                {checkoutError && <div className="case-checkout-error" role="alert">{checkoutError}</div>}
               </div>
             )}
 
-            <div className="case-navigation"><button type="button" className="case-back" onClick={back} disabled={step === 1}>← Précédent</button>{step < 5 ? <button type="button" className="case-next" onClick={next} disabled={!canContinue()}>Continuer →</button> : <button type="submit" className="case-next">Transmettre ma demande →</button>}</div>
+            <div className="case-navigation"><button type="button" className="case-back" onClick={back} disabled={step === 1 || checkoutLoading}>← Précédent</button>{step < 5 ? <button type="button" className="case-next" onClick={next} disabled={!canContinue()}>Continuer →</button> : <button type="submit" className="case-next" disabled={checkoutLoading}>{checkoutLoading ? "Ouverture du paiement…" : `Payer ${totalPrice} € avec Stripe →`}</button>}</div>
           </form>
         </section>
       </section>
