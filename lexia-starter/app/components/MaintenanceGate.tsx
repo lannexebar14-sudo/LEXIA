@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import styles from "./MaintenanceGate.module.css";
 
-const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
+const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token_v2";
+const OLD_ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
 
 type GateState = "loading" | "open" | "maintenance";
 
@@ -26,18 +27,9 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
 
-    async function hasAdminAccess() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (profile?.role === "admin") return true;
-      }
-
+    async function hasTemporaryAccess() {
       const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
       if (!token) return false;
 
@@ -55,12 +47,14 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
     async function applyMaintenanceState(maintenanceMode: boolean) {
       if (!active) return;
+
       if (!maintenanceMode) {
+        window.localStorage.removeItem(ACCESS_TOKEN_KEY);
         setState("open");
         return;
       }
 
-      const allowed = await hasAdminAccess();
+      const allowed = await hasTemporaryAccess();
       if (active) setState(allowed ? "open" : "maintenance");
     }
 
