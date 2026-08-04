@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useMemo, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
 import "./connexion.css";
 
 export default function ConnexionPage() {
-  const supabase = createClient();
-  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,8 +42,16 @@ export default function ConnexionPage() {
       return;
     }
 
-    router.push(profile?.role === "admin" ? "/administration" : "/tableau-de-bord");
-    router.refresh();
+    const requestedRedirect = new URLSearchParams(window.location.search).get("redirect");
+    const safeRedirect = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+      ? requestedRedirect
+      : null;
+
+    const destination = profile?.role === "admin"
+      ? safeRedirect || "/administration"
+      : "/tableau-de-bord";
+
+    window.location.replace(destination);
   }
 
   async function handleResetPassword() {
