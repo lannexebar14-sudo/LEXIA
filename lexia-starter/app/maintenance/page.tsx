@@ -7,7 +7,12 @@ export default function MaintenanceRoute() {
         <div style={{ fontFamily: "Georgia, serif", fontSize: 42, fontWeight: 800, letterSpacing: 2 }}>LEXIA<span style={{ color: "#d4b66e" }}>.</span></div>
         <h1 style={{ marginTop: 28 }}>Site en maintenance</h1>
         <p>Revenez dans quelques minutes.</p>
-        <Link href="/administration" style={{ display: "inline-block", marginTop: 22, color: "#d4b66e", fontWeight: 800 }}>Administration</Link>
+        <Link
+          href="/connexion?redirect=/administration"
+          style={{ display: "inline-block", marginTop: 22, color: "#d4b66e", fontWeight: 800 }}
+        >
+          Administration
+        </Link>
       </section>
     </main>
   );
