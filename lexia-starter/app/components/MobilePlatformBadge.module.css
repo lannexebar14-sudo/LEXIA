@@ -1,10 +1,12 @@
-.bar{
+.bar,
+.spacer{
   display:none;
 }
 
 @media (max-width:760px){
-  :global(body){
-    padding-bottom:calc(86px + env(safe-area-inset-bottom));
+  .spacer{
+    display:block;
+    height:calc(86px + env(safe-area-inset-bottom));
   }
 
   .bar{
@@ -142,7 +144,8 @@
 }
 
 @media (min-width:761px){
-  .bar{
+  .bar,
+  .spacer{
     display:none!important;
   }
 }
