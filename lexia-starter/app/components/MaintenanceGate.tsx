@@ -154,22 +154,8 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       if (!data?.valid || !data.token) throw new Error(data?.error || "Code administrateur incorrect.");
 
       window.localStorage.setItem(ACCESS_TOKEN_KEY, data.token);
-
-      const { data: authData } = await supabase.auth.getUser();
-      let destination = "/connexion?redirect=/administration";
-
-      if (authData.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", authData.user.id)
-          .maybeSingle();
-
-        if (profile?.role === "admin") destination = "/administration";
-      }
-
       setState("open");
-      window.location.replace(destination);
+      window.location.replace("/administration");
     } catch (unlockError) {
       setError(unlockError instanceof Error ? unlockError.message : "Code administrateur incorrect.");
       setCode("");
@@ -242,7 +228,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
           {error && <div className={styles.error} role="alert">! {error}</div>}
 
-          <button type="submit" disabled={checkingCode || code.length !== 6}>
+          <button type="submit" disabled={checkingCode || code.length !== 6} aria-busy={checkingCode}>
             {checkingCode ? "Ouverture…" : "Accéder à l’administration"}
             {!checkingCode && <span>→</span>}
           </button>
