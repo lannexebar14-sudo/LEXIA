@@ -8,6 +8,16 @@ import styles from "./MaintenanceControl.module.css";
 
 type ControlState = "loading" | "ready" | "saving" | "error";
 
+type MaintenanceResult = {
+  success?: boolean;
+  maintenanceMode?: boolean;
+  updatedAt?: string;
+  error?: string;
+};
+
+const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token_v2";
+const OLD_ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
+
 export default function MaintenanceControl() {
   const pathname = usePathname();
   const supabase = useMemo(() => createClient(), []);
@@ -119,34 +129,51 @@ export default function MaintenanceControl() {
     if (state === "saving") return;
 
     const previousValue = enabled;
-    setEnabled(value);
     setState("saving");
     setMessage(value ? "Activation du blocage global…" : "Réouverture du site…");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("platform_settings")
-      .upsert({
-        id: "main",
-        maintenance_mode: value,
-        updated_at: new Date().toISOString(),
-        updated_by: user?.id || null,
-      }, { onConflict: "id" });
+    try {
+      const { data, error } = await supabase.functions.invoke<MaintenanceResult>("set-maintenance", {
+        body: { enabled: value },
+      });
 
-    if (error) {
+      if (error) throw new Error(error.message || "Le serveur a refusé la modification.");
+      if (!data?.success || data.maintenanceMode !== value) {
+        throw new Error(data?.error || "Le serveur n’a pas confirmé le nouvel état.");
+      }
+
+      const { data: verification, error: verificationError } = await supabase
+        .from("platform_settings")
+        .select("maintenance_mode")
+        .eq("id", "main")
+        .single();
+
+      if (verificationError || verification.maintenance_mode !== value) {
+        throw new Error("La vérification finale du mode maintenance a échoué.");
+      }
+
+      setEnabled(value);
+      syncLocalSettings(value);
+      setState("ready");
+
+      if (value) {
+        window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+        window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
+        setMessage("Mode maintenance activé. Le site est maintenant bloqué pour tous, y compris sur cet appareil.");
+      } else {
+        window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+        window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
+        setMessage("Mode maintenance désactivé. Le site est de nouveau ouvert à tous.");
+      }
+
+      window.setTimeout(() => window.location.assign("/"), 900);
+    } catch (changeError) {
       setEnabled(previousValue);
       setState("error");
-      setMessage("Le changement n’a pas pu être appliqué. Le site conserve son état précédent.");
-      return;
+      setMessage(changeError instanceof Error
+        ? changeError.message
+        : "Le changement n’a pas pu être appliqué. Le site conserve son état précédent.");
     }
-
-    syncLocalSettings(value);
-    setState("ready");
-    setMessage(value
-      ? "Mode maintenance activé. Tous les visiteurs voient désormais la page de maintenance."
-      : "Mode maintenance désactivé. Le site est de nouveau ouvert à tous.");
-
-    window.setTimeout(() => window.location.reload(), 900);
   }
 
   if (!target || pathname !== "/administration/parametres") return null;
@@ -158,7 +185,7 @@ export default function MaintenanceControl() {
         <div>
           <small>DISPONIBILITÉ DU SERVICE</small>
           <h2>Mode maintenance global</h2>
-          <p>Bloque immédiatement l’ensemble du site pour les visiteurs.</p>
+          <p>Bloque immédiatement l’ensemble du site pour les visiteurs et les comptes connectés.</p>
         </div>
       </div>
 
@@ -166,9 +193,9 @@ export default function MaintenanceControl() {
         <div className={styles.status}>
           <i />
           <div>
-            <b>{state === "loading" ? "Vérification…" : enabled ? "Site en maintenance" : "Site accessible"}</b>
+            <b>{state === "loading" ? "Vérification…" : state === "saving" ? "Modification en cours…" : enabled ? "Site en maintenance" : "Site accessible"}</b>
             <span>{enabled
-              ? "Seuls les administrateurs autorisés peuvent continuer à accéder au site."
+              ? "L’accès passe obligatoirement par la page de maintenance et le code administrateur."
               : "Les clients et visiteurs peuvent utiliser Lexia normalement."}</span>
           </div>
         </div>
