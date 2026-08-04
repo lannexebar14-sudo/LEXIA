@@ -36,6 +36,16 @@ type SettingsState = {
   maintenanceMode: boolean;
 };
 
+type MaintenanceResult = {
+  success?: boolean;
+  maintenanceMode?: boolean;
+  updatedAt?: string;
+  error?: string;
+};
+
+const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token_v2";
+const OLD_ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
+
 const defaultSettings: SettingsState = {
   platformName: "LEXIA",
   supportEmail: "contact@lexia.fr",
@@ -72,8 +82,11 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
   const [notice, setNotice] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace("/connexion");
@@ -81,21 +94,57 @@ export default function AdminSettingsPage() {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       if (profile?.role !== "admin") return router.replace("/tableau-de-bord");
 
+      let nextSettings = { ...defaultSettings };
       const saved = window.localStorage.getItem("lexia_admin_settings");
       if (saved) {
         try {
-          setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+          nextSettings = { ...nextSettings, ...JSON.parse(saved) };
         } catch {
           setNotice("Les anciens paramètres n’ont pas pu être relus. Les valeurs par défaut sont affichées.");
         }
       }
 
+      const { data: platformSettings, error: platformError } = await supabase
+        .from("platform_settings")
+        .select("maintenance_mode, updated_at")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (platformError || typeof platformSettings?.maintenance_mode !== "boolean") {
+        setNotice("L’état global du site n’a pas pu être vérifié. Le mode maintenance reste inchangé.");
+      } else {
+        nextSettings.maintenanceMode = platformSettings.maintenance_mode;
+        if (platformSettings.updated_at) setSavedAt(platformSettings.updated_at);
+      }
+
       const savedDate = window.localStorage.getItem("lexia_admin_settings_saved_at");
-      if (savedDate) setSavedAt(savedDate);
-      setLoading(false);
+      if (!platformSettings?.updated_at && savedDate) setSavedAt(savedDate);
+
+      window.localStorage.setItem("lexia_admin_settings", JSON.stringify(nextSettings));
+      if (mounted) {
+        setSettings(nextSettings);
+        setLoading(false);
+      }
     }
 
     loadPage();
+
+    const channel = supabase
+      .channel("settings-maintenance-status")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "platform_settings", filter: "id=eq.main" },
+        (payload) => {
+          const nextValue = Boolean((payload.new as { maintenance_mode?: boolean }).maintenance_mode);
+          setSettings((current) => ({ ...current, maintenanceMode: nextValue }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
   }, [router, supabase]);
 
   function update<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
@@ -108,13 +157,64 @@ export default function AdminSettingsPage() {
     window.localStorage.setItem("lexia_admin_settings", JSON.stringify(settings));
     window.localStorage.setItem("lexia_admin_settings_saved_at", now);
     setSavedAt(now);
-    setNotice("Tous les paramètres ont été enregistrés sur cet appareil.");
+    setNotice("Les paramètres ont été enregistrés. Le mode maintenance est synchronisé séparément avec le serveur.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function changeMaintenance(value: boolean) {
+    if (maintenanceSaving || value === settings.maintenanceMode) return;
+
+    const previousValue = settings.maintenanceMode;
+    setMaintenanceSaving(true);
+    setNotice(value ? "Activation du mode maintenance…" : "Réouverture du site…");
+
+    try {
+      const { data, error } = await supabase.functions.invoke<MaintenanceResult>("set-maintenance", {
+        body: { enabled: value },
+      });
+
+      if (error) throw new Error(error.message || "Le serveur a refusé la modification.");
+      if (!data?.success || data.maintenanceMode !== value) {
+        throw new Error(data?.error || "Le serveur n’a pas confirmé le nouvel état.");
+      }
+
+      const { data: verification, error: verificationError } = await supabase
+        .from("platform_settings")
+        .select("maintenance_mode, updated_at")
+        .eq("id", "main")
+        .single();
+
+      if (verificationError || verification.maintenance_mode !== value) {
+        throw new Error("La vérification finale du mode maintenance a échoué.");
+      }
+
+      const nextSettings = { ...settings, maintenanceMode: value };
+      setSettings(nextSettings);
+      window.localStorage.setItem("lexia_admin_settings", JSON.stringify(nextSettings));
+      window.localStorage.setItem("lexia_admin_settings_saved_at", verification.updated_at || new Date().toISOString());
+      setSavedAt(verification.updated_at || new Date().toISOString());
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+      window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
+
+      if (value) {
+        setNotice("Mode maintenance activé. Redirection vers la page de maintenance…");
+        window.setTimeout(() => window.location.assign("/"), 500);
+      } else {
+        setNotice("Mode maintenance désactivé. Le site est de nouveau accessible à tous.");
+      }
+    } catch (maintenanceError) {
+      setSettings((current) => ({ ...current, maintenanceMode: previousValue }));
+      setNotice(maintenanceError instanceof Error
+        ? `Échec : ${maintenanceError.message}`
+        : "Le mode maintenance n’a pas pu être modifié.");
+    } finally {
+      setMaintenanceSaving(false);
+    }
+  }
+
   function resetSettings() {
-    setSettings(defaultSettings);
-    setNotice("Les valeurs par défaut ont été restaurées. Cliquez sur Enregistrer pour les conserver.");
+    setSettings((current) => ({ ...defaultSettings, maintenanceMode: current.maintenanceMode }));
+    setNotice("Les valeurs par défaut ont été restaurées, sauf l’état global du mode maintenance.");
   }
 
   async function logout() {
@@ -137,7 +237,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="settings-hero-status">
             <span className={settings.maintenanceMode ? "warning" : "online"}><i />{settings.maintenanceMode ? "Maintenance active" : "Plateforme disponible"}</span>
-            <small>{savedAt ? `Dernière sauvegarde : ${new Date(savedAt).toLocaleString("fr-FR")}` : "Aucune sauvegarde locale"}</small>
+            <small>{savedAt ? `Dernière synchronisation : ${new Date(savedAt).toLocaleString("fr-FR")}` : "État serveur en attente"}</small>
           </div>
         </header>
 
@@ -208,12 +308,18 @@ export default function AdminSettingsPage() {
           </div>
 
           <section className={`maintenance-card ${settings.maintenanceMode ? "enabled" : ""}`}>
-            <div><span>⚠</span><div><h2>Mode maintenance</h2><p>À utiliser uniquement lorsqu’une intervention doit temporairement bloquer l’accès public.</p></div></div>
-            <Switch label={settings.maintenanceMode ? "Maintenance activée" : "Plateforme ouverte"} checked={settings.maintenanceMode} onChange={(value) => update("maintenanceMode", value)} compact />
+            <div><span>⚠</span><div><h2>Mode maintenance global</h2><p>Le changement est appliqué immédiatement à tous les visiteurs et à tous les appareils.</p></div></div>
+            <Switch
+              label={maintenanceSaving ? "Modification en cours…" : settings.maintenanceMode ? "Maintenance activée" : "Plateforme ouverte"}
+              checked={settings.maintenanceMode}
+              onChange={changeMaintenance}
+              compact
+              disabled={maintenanceSaving}
+            />
           </section>
 
           <div className="settings-modern-save">
-            <div><b>Configuration prête à être enregistrée</b><span>Les valeurs sont actuellement sauvegardées localement sur cet appareil.</span></div>
+            <div><b>Configuration prête à être enregistrée</b><span>Le mode maintenance est enregistré immédiatement sur le serveur.</span></div>
             <div><button type="button" onClick={resetSettings}>Restaurer les valeurs par défaut</button><button type="submit">Enregistrer les paramètres</button></div>
           </div>
         </form>
@@ -233,10 +339,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="modern-field"><span>{label}</span>{children}</label>;
 }
 
-function Switch({ label, description, checked, onChange, compact = false }: { label: string; description?: string; checked: boolean; onChange: (value: boolean) => void; compact?: boolean }) {
+function Switch({ label, description, checked, onChange, compact = false, disabled = false }: { label: string; description?: string; checked: boolean; onChange: (value: boolean) => void; compact?: boolean; disabled?: boolean }) {
   return <label className={`modern-switch ${compact ? "compact" : ""}`}>
     <span><b>{label}</b>{description && <small>{description}</small>}</span>
-    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
     <i />
   </label>;
 }
