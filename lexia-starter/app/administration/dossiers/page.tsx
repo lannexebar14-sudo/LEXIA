@@ -20,34 +20,15 @@ type AdminCase = {
   objective: string | null;
   urgency: string;
   adverse_known: boolean;
-  adverse_type: string | null;
   adverse_name: string | null;
-  adverse_email: string | null;
-  adverse_phone: string | null;
   status: string;
-  opening_amount: number;
-  services_amount: number;
   total_amount: number;
-  assigned_jurist_id: string | null;
   created_at: string;
   updated_at: string;
 };
 
-type ClientProfile = {
-  id: string;
-  full_name: string | null;
-  account_type: string;
-  company_name: string | null;
-};
-
-type CaseDocument = {
-  id: string;
-  case_id: string;
-  storage_path: string;
-  original_name: string;
-  size_bytes: number;
-  created_at: string;
-};
+type ClientProfile = { id: string; full_name: string | null; account_type: string; company_name: string | null };
+type CaseDocument = { id: string; case_id: string; storage_path: string; original_name: string; size_bytes: number; created_at: string };
 
 const statusLabels: Record<string, string> = {
   submitted: "Dossier transmis",
@@ -60,14 +41,8 @@ const statusLabels: Record<string, string> = {
 };
 
 const categoryLabels: Record<string, string> = {
-  logement: "Logement",
-  travail: "Travail",
-  consommation: "Consommation",
-  assurance: "Assurance",
-  famille: "Famille",
-  entreprise: "Entreprise",
-  administration: "Administration",
-  autre: "Autre situation",
+  logement: "Logement", travail: "Travail", consommation: "Consommation", assurance: "Assurance",
+  famille: "Famille", entreprise: "Entreprise", administration: "Administration", autre: "Autre situation",
 };
 
 const statusOptions = ["submitted", "in_review", "awaiting_client", "completed", "cancelled"];
@@ -77,8 +52,7 @@ function formatAmount(cents: number) {
 }
 
 function formatSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} Ko` : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
 }
 
 export default function AdminCasesPage() {
@@ -97,6 +71,11 @@ export default function AdminCasesPage() {
   useEffect(() => {
     let mounted = true;
 
+    async function loadProfile(userId: string) {
+      const { data } = await supabase.from("profiles").select("id,full_name,account_type,company_name").eq("id", userId).maybeSingle();
+      if (mounted && data) setProfiles((current) => ({ ...current, [data.id]: data as ClientProfile }));
+    }
+
     async function loadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace("/connexion");
@@ -107,61 +86,62 @@ export default function AdminCasesPage() {
         supabase.from("legal_cases").select("*").order("created_at", { ascending: false }),
         supabase.from("legal_case_documents").select("id,case_id,storage_path,original_name,size_bytes,created_at").order("created_at", { ascending: false }),
       ]);
-
       if (!mounted) return;
+
       const loadedCases = (caseResult.data as AdminCase[]) || [];
       setCases(loadedCases);
       setDocuments((documentResult.data as CaseDocument[]) || []);
 
       const userIds = Array.from(new Set(loadedCases.map((legalCase) => legalCase.user_id)));
       if (userIds.length > 0) {
-        const { data: clientProfiles } = await supabase.from("profiles").select("id,full_name,account_type,company_name").in("id", userIds);
-        const profileMap = Object.fromEntries(((clientProfiles as ClientProfile[]) || []).map((profile) => [profile.id, profile]));
-        setProfiles(profileMap);
+        const { data } = await supabase.from("profiles").select("id,full_name,account_type,company_name").in("id", userIds);
+        if (mounted) setProfiles(Object.fromEntries(((data as ClientProfile[]) || []).map((profile) => [profile.id, profile])));
       }
       setLoading(false);
     }
 
     loadPage();
 
-    const channel = supabase
-      .channel("admin-legal-cases")
-      .on("postgres_changes", { event: "*", schema: "public", table: "legal_cases" }, async (payload) => {
+    const casesChannel = supabase.channel("admin-legal-cases")
+      .on("postgres_changes", { event: "*", schema: "public", table: "legal_cases" }, (payload) => {
         if (payload.eventType === "DELETE") {
           setCases((current) => current.filter((item) => item.id !== (payload.old as { id?: string }).id));
           return;
         }
         const incoming = payload.new as AdminCase;
         setCases((current) => [incoming, ...current.filter((item) => item.id !== incoming.id)].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-        if (!profiles[incoming.user_id]) {
-          const { data: profile } = await supabase.from("profiles").select("id,full_name,account_type,company_name").eq("id", incoming.user_id).maybeSingle();
-          if (profile) setProfiles((current) => ({ ...current, [profile.id]: profile as ClientProfile }));
-        }
-      })
-      .subscribe();
+        void loadProfile(incoming.user_id);
+      }).subscribe();
+
+    const documentsChannel = supabase.channel("admin-case-documents")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "legal_case_documents" }, (payload) => {
+        const incoming = payload.new as CaseDocument;
+        setDocuments((current) => [incoming, ...current.filter((item) => item.id !== incoming.id)]);
+      }).subscribe();
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      supabase.removeChannel(casesChannel);
+      supabase.removeChannel(documentsChannel);
     };
-  }, [profiles, router, supabase]);
+  }, [router, supabase]);
 
   const filteredCases = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     return cases.filter((legalCase) => {
       const profile = profiles[legalCase.user_id];
-      const matchesStatus = statusFilter === "all" || legalCase.status === statusFilter;
-      const matchesSearch = !normalized || [legalCase.reference, legalCase.subject, legalCase.category, profile?.full_name, profile?.company_name].filter(Boolean).some((value) => String(value).toLowerCase().includes(normalized));
-      return matchesStatus && matchesSearch;
+      const values = [legalCase.reference, legalCase.subject, legalCase.category, profile?.full_name, profile?.company_name];
+      return (statusFilter === "all" || legalCase.status === statusFilter)
+        && (!normalized || values.filter(Boolean).some((value) => String(value).toLowerCase().includes(normalized)));
     });
   }, [cases, profiles, search, statusFilter]);
 
-  const stats = useMemo(() => ({
+  const stats = {
     submitted: cases.filter((legalCase) => legalCase.status === "submitted").length,
     inReview: cases.filter((legalCase) => legalCase.status === "in_review").length,
     waiting: cases.filter((legalCase) => legalCase.status === "awaiting_client").length,
     urgent: cases.filter((legalCase) => legalCase.urgency === "urgente" && !["completed", "cancelled"].includes(legalCase.status)).length,
-  }), [cases]);
+  };
 
   async function changeStatus(legalCase: AdminCase, nextStatus: string) {
     if (nextStatus === legalCase.status || savingCaseId) return;
@@ -170,9 +150,8 @@ export default function AdminCasesPage() {
     setSavingCaseId(legalCase.id);
     setNotice("");
     const { error } = await supabase.from("legal_cases").update({ status: nextStatus }).eq("id", legalCase.id);
-    if (error) {
-      setNotice(`Le statut de ${legalCase.reference} n’a pas pu être modifié.`);
-    } else {
+    if (error) setNotice(`Le statut de ${legalCase.reference} n’a pas pu être modifié.`);
+    else {
       setCases((current) => current.map((item) => item.id === legalCase.id ? { ...item, status: nextStatus, updated_at: new Date().toISOString() } : item));
       setNotice(`${legalCase.reference} : statut mis à jour. Le client a été notifié.`);
     }
@@ -181,10 +160,7 @@ export default function AdminCasesPage() {
 
   async function openDocument(document: CaseDocument) {
     const { data, error } = await supabase.storage.from("case-documents").createSignedUrl(document.storage_path, 60);
-    if (error || !data?.signedUrl) {
-      setNotice("Le document n’a pas pu être ouvert.");
-      return;
-    }
+    if (error || !data?.signedUrl) return setNotice("Le document n’a pas pu être ouvert.");
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
@@ -201,24 +177,16 @@ export default function AdminCasesPage() {
         <Link href="/administration" className="admin-logo">LEXIA<span>.</span></Link>
         <div className="admin-badge">ADMINISTRATION</div>
         <nav>
-          <Link href="/administration">◫ Vue d’ensemble</Link>
-          <Link className="active" href="/administration/dossiers">▣ Dossiers</Link>
-          <Link href="/administration/messages">✉ Messagerie</Link>
-          <Link href="/administration/clients">♙ Clients</Link>
-          <Link href="/administration/juristes">⚖ Juristes</Link>
-          <Link href="/administration/prestations">€ Prestations</Link>
-          <Link href="/administration/avocats">⌖ Avocats partenaires</Link>
-          <Link href="/administration/parametres">⚙ Paramètres</Link>
+          <Link href="/administration">◫ Vue d’ensemble</Link><Link className="active" href="/administration/dossiers">▣ Dossiers</Link>
+          <Link href="/administration/messages">✉ Messagerie</Link><Link href="/administration/clients">♙ Clients</Link>
+          <Link href="/administration/juristes">⚖ Juristes</Link><Link href="/administration/prestations">€ Prestations</Link>
+          <Link href="/administration/avocats">⌖ Avocats partenaires</Link><Link href="/administration/parametres">⚙ Paramètres</Link>
         </nav>
         <button onClick={logout}>Se déconnecter</button>
       </aside>
 
       <section className="admin-main admin-cases-page">
-        <header className="admin-cases-hero">
-          <div><small>GESTION DES DEMANDES</small><h1>Dossiers clients</h1><p>Consultez les demandes, ouvrez les documents et actualisez leur traitement.</p></div>
-          <Link href="/nouveau-dossier">＋ Déposer un dossier test</Link>
-        </header>
-
+        <header className="admin-cases-hero"><div><small>GESTION DES DEMANDES</small><h1>Dossiers clients</h1><p>Consultez les demandes, ouvrez les documents et actualisez leur traitement.</p></div><Link href="/nouveau-dossier">＋ Déposer un dossier test</Link></header>
         {notice && <div className="admin-case-notice">{notice}</div>}
 
         <section className="admin-case-stats">
