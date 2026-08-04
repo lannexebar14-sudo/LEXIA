@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./mobile-polish.css";
+import "./administration/mobile-header.css";
 import LiveSupport from "./components/LiveSupport";
 
 export const metadata: Metadata = {
