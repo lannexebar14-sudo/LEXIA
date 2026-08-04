@@ -1,0 +1,209 @@
+/* En-tête mobile dédié à l’espace client LEXIA. */
+@media (max-width: 760px) {
+  body .client-app {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 100vh !important;
+  }
+
+  body .client-app > .client-sidebar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 160 !important;
+    isolation: isolate !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "logo logout"
+      "nav nav" !important;
+    align-items: center !important;
+    gap: 10px 12px !important;
+    padding-top: calc(11px + env(safe-area-inset-top)) !important;
+    padding-right: calc(14px + env(safe-area-inset-right)) !important;
+    padding-bottom: 10px !important;
+    padding-left: calc(14px + env(safe-area-inset-left)) !important;
+    overflow: visible !important;
+    background: rgba(9, 29, 51, 0.985) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    box-shadow: 0 8px 26px rgba(6, 24, 44, 0.2) !important;
+  }
+
+  body .client-app > .client-sidebar .app-logo {
+    grid-area: logo !important;
+    position: relative !important;
+    z-index: 4 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: max-content !important;
+    min-width: 124px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 5px !important;
+    border-radius: 10px !important;
+    color: #ffffff !important;
+    font: 700 24px/1 Georgia, serif !important;
+    letter-spacing: 3px !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  body .client-app > .client-sidebar .app-logo span {
+    color: #d5b66f !important;
+  }
+
+  body .client-app > .client-sidebar .app-logo:active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    transform: scale(0.98) !important;
+  }
+
+  body .client-app > .client-sidebar > button {
+    grid-area: logout !important;
+    position: static !important;
+    z-index: 4 !important;
+    justify-self: end !important;
+    align-self: center !important;
+    width: auto !important;
+    min-width: 68px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 13px !important;
+    border: 1px solid rgba(212, 182, 110, 0.48) !important;
+    border-radius: 999px !important;
+    background: rgba(212, 182, 110, 0.1) !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease !important;
+  }
+
+  body .client-app > .client-sidebar > button::before {
+    content: "Sortir" !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    color: #f4e6bd !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+  }
+
+  body .client-app > .client-sidebar > button::after {
+    content: none !important;
+  }
+
+  body .client-app > .client-sidebar > button:active {
+    background: rgba(212, 182, 110, 0.22) !important;
+    border-color: rgba(212, 182, 110, 0.85) !important;
+    transform: scale(0.96) !important;
+  }
+
+  body .client-app > .client-sidebar nav {
+    grid-area: nav !important;
+    position: relative !important;
+    z-index: 3 !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 1px 0 2px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    scroll-behavior: smooth !important;
+    scroll-snap-type: x proximity !important;
+    scrollbar-width: none !important;
+    touch-action: pan-x !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  body .client-app > .client-sidebar nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  body .client-app > .client-sidebar nav a {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 9px 13px !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, 0.065) !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    scroll-snap-align: start !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  body .client-app > .client-sidebar nav a.active {
+    background: #d5b66f !important;
+    color: #10233d !important;
+    box-shadow: 0 6px 18px rgba(213, 182, 111, 0.2) !important;
+    font-weight: 900 !important;
+  }
+
+  body .client-app > .client-sidebar nav a:active {
+    transform: scale(0.98) !important;
+  }
+
+  body .client-app > .client-content {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  body .client-app > .client-sidebar {
+    gap: 8px 10px !important;
+    padding-top: calc(10px + env(safe-area-inset-top)) !important;
+    padding-right: calc(10px + env(safe-area-inset-right)) !important;
+    padding-bottom: 9px !important;
+    padding-left: calc(10px + env(safe-area-inset-left)) !important;
+  }
+
+  body .client-app > .client-sidebar .app-logo {
+    min-width: 116px !important;
+    min-height: 42px !important;
+    font-size: 22px !important;
+    letter-spacing: 2.5px !important;
+  }
+
+  body .client-app > .client-sidebar > button {
+    min-width: 64px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 11px !important;
+  }
+
+  body .client-app > .client-sidebar nav a {
+    min-height: 40px !important;
+    padding: 8px 11px !important;
+    font-size: 11px !important;
+  }
+}
