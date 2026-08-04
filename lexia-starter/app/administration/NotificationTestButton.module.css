@@ -1,0 +1,261 @@
+.testButton{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:46px;
+  padding:12px 15px!important;
+  border:1px solid #d7dde5!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#0c2340!important;
+  font-weight:900!important;
+  box-shadow:0 6px 18px rgba(12,35,64,.06);
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.testButton:hover{
+  border-color:#d4b66e!important;
+  transform:translateY(-1px);
+}
+
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(4,18,34,.68);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.modal{
+  position:relative;
+  width:min(520px,100%);
+  padding:30px;
+  border:1px solid rgba(255,255,255,.7);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 30px 90px rgba(3,18,35,.34);
+  text-align:center;
+}
+
+.close{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:#f1f4f7!important;
+  color:#0c2340!important;
+  font-size:22px;
+  cursor:pointer;
+}
+
+.modalIcon{
+  width:64px;
+  height:64px;
+  display:grid;
+  place-items:center;
+  margin:0 auto 16px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#0c2340,#174b79);
+  box-shadow:0 14px 30px rgba(12,35,64,.2);
+  font-size:28px;
+}
+
+.modal>small{
+  display:block;
+  color:#9a7a39;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.5px;
+}
+
+.modal h2{
+  margin:9px 0 10px;
+  color:#0c2340;
+  font:700 29px/1.15 Georgia,serif;
+}
+
+.modal>p{
+  max-width:430px;
+  margin:0 auto;
+  color:#667085;
+  font-size:14px;
+  line-height:1.65;
+}
+
+.warning{
+  display:grid;
+  gap:5px;
+  margin:22px 0;
+  padding:15px 16px;
+  border:1px solid #eadfbe;
+  border-radius:15px;
+  background:#fbf7ec;
+  color:#73591f;
+  text-align:left;
+}
+
+.warning b{
+  font-size:13px;
+}
+
+.warning span{
+  color:#88713d;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.danger{
+  border-color:#f1c6c6;
+  background:#fff2f2;
+  color:#8d2626;
+}
+
+.danger span{
+  color:#9a5050;
+}
+
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.actions button{
+  min-height:48px;
+  padding:12px 14px!important;
+  border-radius:13px!important;
+  font-weight:900!important;
+  cursor:pointer;
+}
+
+.secondary{
+  border:1px solid #dfe4ea!important;
+  background:#f4f6f8!important;
+  color:#0c2340!important;
+}
+
+.primary{
+  border:1px solid #0c2340!important;
+  background:#0c2340!important;
+  color:#fff!important;
+}
+
+.dangerButton{
+  border:1px solid #b42318!important;
+  background:#b42318!important;
+  color:#fff!important;
+}
+
+.actions button:disabled,.close:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.feedback{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:520;
+  width:min(430px,calc(100vw - 28px));
+  display:grid;
+  grid-template-columns:34px 1fr 30px;
+  align-items:center;
+  gap:10px;
+  padding:14px;
+  border-radius:16px;
+  box-shadow:0 18px 50px rgba(4,18,34,.22);
+}
+
+.feedback>span{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-weight:900;
+}
+
+.feedback p{
+  margin:0;
+  font-size:13px;
+  font-weight:800;
+  line-height:1.45;
+}
+
+.feedback button{
+  width:30px;
+  height:30px;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.45)!important;
+  color:inherit!important;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.feedbackSuccess{
+  border:1px solid #9cd8b1;
+  background:#eaf8ef;
+  color:#176b38;
+}
+
+.feedbackSuccess>span{
+  background:#c8edd4;
+}
+
+.feedbackError{
+  border:1px solid #efb7b7;
+  background:#fff0f0;
+  color:#8d2626;
+}
+
+.feedbackError>span{
+  background:#f7cccc;
+}
+
+@media(max-width:620px){
+  .testButton{
+    width:100%;
+    min-height:46px;
+    padding:10px 12px!important;
+    font-size:12px;
+  }
+
+  .overlay{
+    align-items:end;
+    padding:10px;
+  }
+
+  .modal{
+    padding:27px 18px calc(20px + env(safe-area-inset-bottom));
+    border-radius:22px 22px 16px 16px;
+  }
+
+  .modal h2{
+    font-size:25px;
+  }
+
+  .actions{
+    grid-template-columns:1fr;
+  }
+
+  .feedback{
+    top:calc(10px + env(safe-area-inset-top));
+    right:14px;
+    left:14px;
+    width:auto;
+  }
+}
