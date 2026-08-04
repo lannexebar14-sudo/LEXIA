@@ -26,3 +26,5 @@ jobs:
         run: npm install
       - name: Vérifier le build Next.js
         run: npm run build
+
+# Relance Vercel du 04/08/2026 à 23:59
