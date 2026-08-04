@@ -23,16 +23,29 @@ export default function MaintenanceControl() {
     }
 
     let slot: HTMLDivElement | null = null;
+    let hiddenCard: HTMLElement | null = null;
     let cancelled = false;
 
     function mountControl() {
       const grid = document.querySelector(".settings-grid");
       if (!grid || cancelled) return false;
+
+      const maintenanceState = grid.querySelector(".maintenance-state");
+      hiddenCard = maintenanceState?.closest(".settings-card") as HTMLElement | null;
+      if (hiddenCard) hiddenCard.style.display = "none";
+
       slot = document.createElement("div");
-      slot.className = "lexia-maintenance-control-slot";
+      slot.style.display = "block";
+      slot.style.gridColumn = "1 / -1";
       grid.appendChild(slot);
       setTarget(slot);
       return true;
+    }
+
+    function cleanup() {
+      cancelled = true;
+      slot?.remove();
+      hiddenCard?.style.removeProperty("display");
     }
 
     if (!mountControl()) {
@@ -41,16 +54,12 @@ export default function MaintenanceControl() {
       });
       observer.observe(document.body, { childList: true, subtree: true });
       return () => {
-        cancelled = true;
         observer.disconnect();
-        slot?.remove();
+        cleanup();
       };
     }
 
-    return () => {
-      cancelled = true;
-      slot?.remove();
-    };
+    return cleanup;
   }, [pathname]);
 
   useEffect(() => {
