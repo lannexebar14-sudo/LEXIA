@@ -56,6 +56,19 @@ type SettingsState = {
   maintenanceMode: boolean;
 };
 
+type ServiceOffer = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  delay: string;
+  active: boolean;
+  featured: boolean;
+  icon: string;
+  builtIn: boolean;
+};
+
 const defaultSettings: SettingsState = {
   platformName: "LEXIA",
   supportEmail: "contact@lexia.fr",
@@ -85,14 +98,113 @@ const defaultSettings: SettingsState = {
   maintenanceMode: false,
 };
 
+const defaultServiceOffers: ServiceOffer[] = [
+  {
+    id: "opening-analysis",
+    title: "Ouverture et analyse initiale",
+    description: "Lecture de la situation, classement des pièces et première orientation juridique personnalisée.",
+    category: "Analyse",
+    price: 13,
+    delay: "Sous 48 h",
+    active: true,
+    featured: true,
+    icon: "◇",
+    builtIn: true,
+  },
+  {
+    id: "deep-analysis",
+    title: "Analyse approfondie et plan d’action",
+    description: "Étude détaillée du dossier avec étapes recommandées, points de vigilance et stratégie de résolution.",
+    category: "Analyse",
+    price: 39,
+    delay: "Sous 72 h",
+    active: true,
+    featured: false,
+    icon: "⌕",
+    builtIn: true,
+  },
+  {
+    id: "legal-letter",
+    title: "Courrier juridique personnalisé",
+    description: "Aide à la rédaction d’un courrier clair et argumenté adapté à la situation du client.",
+    category: "Rédaction",
+    price: 49,
+    delay: "Sous 72 h",
+    active: true,
+    featured: false,
+    icon: "✎",
+    builtIn: true,
+  },
+  {
+    id: "formal-notice",
+    title: "Mise en demeure personnalisée",
+    description: "Préparation d’une mise en demeure structurée, avec rappel des faits, demandes et délai d’exécution.",
+    category: "Rédaction",
+    price: 69,
+    delay: "Sous 72 h",
+    active: true,
+    featured: true,
+    icon: "!",
+    builtIn: true,
+  },
+  {
+    id: "contract-review",
+    title: "Relecture de contrat",
+    description: "Repérage des clauses sensibles et remise d’observations compréhensibles avant signature ou contestation.",
+    category: "Contrats",
+    price: 59,
+    delay: "Sous 3 jours",
+    active: true,
+    featured: false,
+    icon: "▤",
+    builtIn: true,
+  },
+  {
+    id: "mediation-file",
+    title: "Dossier de médiation ou conciliation",
+    description: "Organisation des pièces et aide à la préparation d’un dossier destiné à une démarche amiable.",
+    category: "Accompagnement",
+    price: 79,
+    delay: "Sous 5 jours",
+    active: true,
+    featured: false,
+    icon: "◎",
+    builtIn: true,
+  },
+  {
+    id: "procedure-file",
+    title: "Préparation d’un dossier contentieux",
+    description: "Synthèse chronologique, inventaire des preuves et préparation des éléments à transmettre au professionnel compétent.",
+    category: "Accompagnement",
+    price: 99,
+    delay: "Sous 5 jours",
+    active: true,
+    featured: false,
+    icon: "⚖",
+    builtIn: true,
+  },
+  {
+    id: "lawyer-summary",
+    title: "Synthèse pour transmission à un avocat",
+    description: "Création d’une synthèse courte et exploitable pour faciliter la prise en charge du dossier par un avocat.",
+    category: "Orientation",
+    price: 39,
+    delay: "Sous 48 h",
+    active: true,
+    featured: false,
+    icon: "↗",
+    builtIn: true,
+  },
+];
+
 const configs: Record<string, SectionConfig> = {
   dossiers: { title: "Dossiers", eyebrow: "GESTION JURIDIQUE", description: "Consultez, recherchez et attribuez les demandes déposées.", action: "Créer un dossier", icon: "▣" },
   messages: { title: "Messagerie", eyebrow: "ÉCHANGES CLIENTS", description: "Centralisez les conversations liées aux dossiers.", action: "Nouveau message", icon: "✉" },
   clients: { title: "Clients", eyebrow: "UTILISATEURS", description: "Retrouvez les particuliers et professionnels inscrits.", action: "Ajouter un client", icon: "♙" },
   juristes: { title: "Juristes", eyebrow: "ÉQUIPE", description: "Gérez les accès, spécialités et dossiers attribués.", action: "Ajouter un juriste", icon: "⚖" },
-  prestations: { title: "Prestations", eyebrow: "OFFRES PAYANTES", description: "Créez et suivez les propositions complémentaires.", action: "Créer une prestation", icon: "€" },
+  prestations: { title: "Prestations", eyebrow: "CATALOGUE DE SERVICES", description: "Gérez les services proposés, leurs tarifs et leur disponibilité.", action: "Créer une prestation", icon: "€" },
   avocats: { title: "Avocats partenaires", eyebrow: "ANNUAIRE NATIONAL", description: "Recherchez un avocat par code postal et spécialité.", action: "Rechercher", icon: "⌖" },
-  parametres: { title: "Paramètres", eyebrow: "CONFIGURATION", description: "Configurez le fonctionnement complet de la plateforme.", action: "Enregistrer", icon: "⚙" },
+  parametres: { title: "Paramètres", eyebrow: "CENTRE DE CONFIGURATION", description: "Pilotez les tarifs, la sécurité et le fonctionnement de LEXIA.", action: "Enregistrer", icon: "⚙" },
 };
 
 export default function AdminSectionPage() {
@@ -100,7 +212,7 @@ export default function AdminSectionPage() {
   const section = params.section || "dossiers";
   const config = configs[section] || configs.dossiers;
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
@@ -112,6 +224,8 @@ export default function AdminSectionPage() {
   const [lawyerSearching, setLawyerSearching] = useState(false);
   const [lawyerSearchStarted, setLawyerSearchStarted] = useState(false);
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
+  const [services, setServices] = useState<ServiceOffer[]>(defaultServiceOffers);
+  const [serviceCategory, setServiceCategory] = useState("Toutes");
 
   useEffect(() => {
     async function verifyAdmin() {
@@ -127,10 +241,19 @@ export default function AdminSectionPage() {
 
       setProfiles((profileRows as Profile[]) || []);
 
-      const saved = window.localStorage.getItem("lexia_admin_settings");
-      if (saved) {
-        try { setSettings({ ...defaultSettings, ...JSON.parse(saved) }); } catch { /* ignore invalid data */ }
+      const savedSettings = window.localStorage.getItem("lexia_admin_settings");
+      if (savedSettings) {
+        try { setSettings({ ...defaultSettings, ...JSON.parse(savedSettings) }); } catch { /* ignore invalid data */ }
       }
+
+      const savedServices = window.localStorage.getItem("lexia_admin_services");
+      if (savedServices) {
+        try {
+          const parsed = JSON.parse(savedServices) as ServiceOffer[];
+          if (Array.isArray(parsed) && parsed.length > 0) setServices(parsed);
+        } catch { /* ignore invalid data */ }
+      }
+
       setLoading(false);
     }
     verifyAdmin();
@@ -138,13 +261,25 @@ export default function AdminSectionPage() {
 
   const clients = profiles.filter((profile) => profile.role !== "admin" && profile.role !== "juriste");
   const jurists = profiles.filter((profile) => profile.role === "juriste");
+  const serviceCategories = useMemo(() => ["Toutes", ...Array.from(new Set(services.map((service) => service.category)))], [services]);
+  const filteredServices = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return services.filter((service) => {
+      const matchesCategory = serviceCategory === "Toutes" || service.category === serviceCategory;
+      const matchesQuery = !normalizedQuery || `${service.title} ${service.description} ${service.category}`.toLowerCase().includes(normalizedQuery);
+      return matchesCategory && matchesQuery;
+    });
+  }, [query, serviceCategory, services]);
+  const activeServices = services.filter((service) => service.active);
+  const averageServicePrice = activeServices.length
+    ? Math.round(activeServices.reduce((sum, service) => sum + service.price, 0) / activeServices.length)
+    : 0;
 
   const emptyText = useMemo(() => ({
     dossiers: "Aucun dossier enregistré pour le moment.",
     messages: "Aucune conversation en attente.",
     clients: clients.length ? `${clients.length} client(s) disponible(s).` : "Aucun autre client inscrit pour le moment.",
     juristes: jurists.length ? `${jurists.length} juriste(s) disponible(s).` : "Aucun juriste ajouté pour le moment.",
-    prestations: "Aucune prestation complémentaire créée.",
     avocats: "Aucun avocat partenaire référencé.",
   }[section] || "Aucune donnée."), [section, clients.length, jurists.length]);
 
@@ -166,11 +301,46 @@ export default function AdminSectionPage() {
   function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     window.localStorage.setItem("lexia_admin_settings", JSON.stringify(settings));
-    setNotice("Les paramètres de la plateforme ont été enregistrés sur cet appareil.");
+    setNotice("Tous les paramètres ont bien été enregistrés sur cet appareil.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function updateSetting<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
     setSettings((current) => ({ ...current, [key]: value }));
+  }
+
+  function persistServices(nextServices: ServiceOffer[]) {
+    setServices(nextServices);
+    window.localStorage.setItem("lexia_admin_services", JSON.stringify(nextServices));
+  }
+
+  function toggleService(serviceId: string) {
+    const nextServices = services.map((service) => service.id === serviceId ? { ...service, active: !service.active } : service);
+    const updated = nextServices.find((service) => service.id === serviceId);
+    persistServices(nextServices);
+    setNotice(updated?.active ? "La prestation est maintenant visible et active." : "La prestation a été désactivée.");
+  }
+
+  function addService(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const category = String(form.get("category") || "Autre");
+    const price = Number(form.get("price") || 0);
+    const newService: ServiceOffer = {
+      id: `custom-${Date.now()}`,
+      title: String(form.get("title") || "Nouvelle prestation"),
+      description: String(form.get("description") || ""),
+      category,
+      price: Number.isFinite(price) ? price : 0,
+      delay: String(form.get("delay") || "À définir"),
+      active: true,
+      featured: form.get("featured") === "on",
+      icon: serviceIcon(category),
+      builtIn: false,
+    };
+    persistServices([newService, ...services]);
+    setNotice(`La prestation « ${newService.title} » a été ajoutée au catalogue.`);
+    setShowForm(false);
   }
 
   async function logout() {
@@ -217,6 +387,7 @@ export default function AdminSectionPage() {
       error = result.error;
       data = (result.data as Lawyer[]) || [];
     }
+
     if (error) {
       setLawyers([]);
       setNotice("La recherche n’a pas pu aboutir. Réessayez dans quelques instants.");
@@ -261,58 +432,103 @@ export default function AdminSectionPage() {
 
         {section === "parametres" ? (
           <form className="settings-page" onSubmit={saveSettings}>
-            <SettingsCard title="Identité de la plateforme" description="Informations générales visibles par les clients.">
-              <Field label="Nom de la plateforme"><input value={settings.platformName} onChange={(e) => updateSetting("platformName", e.target.value)} /></Field>
-              <Field label="E-mail de support"><input type="email" value={settings.supportEmail} onChange={(e) => updateSetting("supportEmail", e.target.value)} /></Field>
-              <Field label="Téléphone"><input value={settings.supportPhone} onChange={(e) => updateSetting("supportPhone", e.target.value)} placeholder="01 00 00 00 00" /></Field>
-              <Field label="Adresse"><textarea rows={3} value={settings.address} onChange={(e) => updateSetting("address", e.target.value)} /></Field>
-            </SettingsCard>
+            <section className="settings-overview">
+              <div className="settings-overview-copy">
+                <span className="settings-status"><i /> Configuration active</span>
+                <small>CENTRE DE PILOTAGE LEXIA</small>
+                <h2>Tous vos réglages au même endroit</h2>
+                <p>Personnalisez l’expérience client, les tarifs, les notifications et les règles de sécurité depuis une interface plus claire.</p>
+              </div>
+              <div className="settings-kpis">
+                <article><span>Ouverture particulier</span><strong>{formatPrice(Number(settings.individualPrice))}</strong></article>
+                <article><span>Délai annoncé</span><strong>{settings.responseDelay} h</strong></article>
+                <article><span>Rayon avocats</span><strong>{settings.lawyerRadius} km</strong></article>
+                <article><span>Plateforme</span><strong>{settings.maintenanceMode ? "Maintenance" : "En ligne"}</strong></article>
+              </div>
+            </section>
 
-            <SettingsCard title="Tarifs et facturation" description="Prix d’ouverture de dossier et paramètres de facturation.">
-              <Field label="Tarif particulier (€)"><input type="number" step="0.01" value={settings.individualPrice} onChange={(e) => updateSetting("individualPrice", e.target.value)} /></Field>
-              <Field label="Tarif professionnel (€)"><input type="number" step="0.01" value={settings.professionalPrice} onChange={(e) => updateSetting("professionalPrice", e.target.value)} /></Field>
-              <Field label="TVA (%)"><input type="number" value={settings.vatRate} onChange={(e) => updateSetting("vatRate", e.target.value)} /></Field>
-              <Field label="Préfixe de facture"><input value={settings.invoicePrefix} onChange={(e) => updateSetting("invoicePrefix", e.target.value)} /></Field>
-              <Toggle label="Activer les paiements Stripe" checked={settings.stripeEnabled} onChange={(value) => updateSetting("stripeEnabled", value)} />
-            </SettingsCard>
+            <div className="settings-grid">
+              <SettingsCard icon="✦" title="Identité de la plateforme" description="Informations générales visibles par les clients.">
+                <Field label="Nom de la plateforme"><input value={settings.platformName} onChange={(e) => updateSetting("platformName", e.target.value)} /></Field>
+                <Field label="E-mail de support"><input type="email" value={settings.supportEmail} onChange={(e) => updateSetting("supportEmail", e.target.value)} /></Field>
+                <Field label="Téléphone"><input value={settings.supportPhone} onChange={(e) => updateSetting("supportPhone", e.target.value)} placeholder="01 00 00 00 00" /></Field>
+                <Field label="Adresse" wide><textarea rows={3} value={settings.address} onChange={(e) => updateSetting("address", e.target.value)} placeholder="Adresse du siège ou du service" /></Field>
+              </SettingsCard>
 
-            <SettingsCard title="Dossiers" description="Règles de création, attribution et traitement.">
-              <Field label="Délai de réponse annoncé (heures)"><input type="number" value={settings.responseDelay} onChange={(e) => updateSetting("responseDelay", e.target.value)} /></Field>
-              <Toggle label="Attribution automatique à un juriste" checked={settings.autoAssign} onChange={(value) => updateSetting("autoAssign", value)} />
-              <Toggle label="Autoriser les documents client" checked={settings.allowClientDocuments} onChange={(value) => updateSetting("allowClientDocuments", value)} />
-              <Toggle label="Autoriser la partie adverse facultative" checked={settings.allowAdverseParty} onChange={(value) => updateSetting("allowAdverseParty", value)} />
-            </SettingsCard>
+              <SettingsCard icon="€" title="Tarifs et facturation" description="Prix d’ouverture de dossier et paramètres de facturation.">
+                <Field label="Tarif particulier (€)"><input type="number" min="0" step="0.01" value={settings.individualPrice} onChange={(e) => updateSetting("individualPrice", e.target.value)} /></Field>
+                <Field label="Tarif professionnel (€)"><input type="number" min="0" step="0.01" value={settings.professionalPrice} onChange={(e) => updateSetting("professionalPrice", e.target.value)} /></Field>
+                <Field label="TVA (%)"><input type="number" min="0" value={settings.vatRate} onChange={(e) => updateSetting("vatRate", e.target.value)} /></Field>
+                <Field label="Préfixe de facture"><input value={settings.invoicePrefix} onChange={(e) => updateSetting("invoicePrefix", e.target.value)} /></Field>
+                <Toggle label="Paiements Stripe" hint="Permettre le règlement en ligne" checked={settings.stripeEnabled} onChange={(value) => updateSetting("stripeEnabled", value)} />
+              </SettingsCard>
 
-            <SettingsCard title="Messagerie et notifications" description="Alertes envoyées à l’équipe et aux utilisateurs.">
-              <Toggle label="Notifications par e-mail" checked={settings.emailNotifications} onChange={(value) => updateSetting("emailNotifications", value)} />
-              <Toggle label="Notifications par SMS" checked={settings.smsNotifications} onChange={(value) => updateSetting("smsNotifications", value)} />
-              <Toggle label="Alerte nouveau dossier" checked={settings.notifyNewCase} onChange={(value) => updateSetting("notifyNewCase", value)} />
-              <Toggle label="Alerte nouveau message" checked={settings.notifyNewMessage} onChange={(value) => updateSetting("notifyNewMessage", value)} />
-              <Toggle label="Alerte paiement reçu" checked={settings.notifyPayment} onChange={(value) => updateSetting("notifyPayment", value)} />
-            </SettingsCard>
+              <SettingsCard icon="▣" title="Gestion des dossiers" description="Règles de création, attribution et traitement.">
+                <Field label="Délai de réponse annoncé (heures)"><input type="number" min="1" value={settings.responseDelay} onChange={(e) => updateSetting("responseDelay", e.target.value)} /></Field>
+                <Toggle label="Attribution automatique" hint="Affecter les nouveaux dossiers à un juriste" checked={settings.autoAssign} onChange={(value) => updateSetting("autoAssign", value)} />
+                <Toggle label="Documents client" hint="Autoriser l’ajout de pièces au dossier" checked={settings.allowClientDocuments} onChange={(value) => updateSetting("allowClientDocuments", value)} />
+                <Toggle label="Partie adverse" hint="Afficher les champs facultatifs correspondants" checked={settings.allowAdverseParty} onChange={(value) => updateSetting("allowAdverseParty", value)} />
+              </SettingsCard>
 
-            <SettingsCard title="Sécurité" description="Protection des comptes et des sessions.">
-              <Toggle label="Confirmation obligatoire de l’e-mail" checked={settings.requireEmailConfirmation} onChange={(value) => updateSetting("requireEmailConfirmation", value)} />
-              <Toggle label="Double authentification administrateur" checked={settings.requireTwoFactorAdmin} onChange={(value) => updateSetting("requireTwoFactorAdmin", value)} />
-              <Field label="Durée maximale de session (heures)"><input type="number" value={settings.sessionDuration} onChange={(e) => updateSetting("sessionDuration", e.target.value)} /></Field>
-            </SettingsCard>
+              <SettingsCard icon="✉" title="Notifications" description="Alertes envoyées à l’équipe et aux utilisateurs.">
+                <Toggle label="Notifications par e-mail" checked={settings.emailNotifications} onChange={(value) => updateSetting("emailNotifications", value)} />
+                <Toggle label="Notifications par SMS" checked={settings.smsNotifications} onChange={(value) => updateSetting("smsNotifications", value)} />
+                <Toggle label="Nouveau dossier" checked={settings.notifyNewCase} onChange={(value) => updateSetting("notifyNewCase", value)} />
+                <Toggle label="Nouveau message" checked={settings.notifyNewMessage} onChange={(value) => updateSetting("notifyNewMessage", value)} />
+                <Toggle label="Paiement reçu" checked={settings.notifyPayment} onChange={(value) => updateSetting("notifyPayment", value)} />
+              </SettingsCard>
 
-            <SettingsCard title="Documents et conservation" description="Limites techniques et politique d’archivage.">
-              <Field label="Taille maximale par fichier (Mo)"><input type="number" value={settings.maxFileSize} onChange={(e) => updateSetting("maxFileSize", e.target.value)} /></Field>
-              <Field label="Formats autorisés"><input value={settings.allowedFileTypes} onChange={(e) => updateSetting("allowedFileTypes", e.target.value)} /></Field>
-              <Field label="Durée de conservation (années)"><input type="number" value={settings.retentionYears} onChange={(e) => updateSetting("retentionYears", e.target.value)} /></Field>
-            </SettingsCard>
+              <SettingsCard icon="◇" title="Sécurité" description="Protection des comptes et des sessions.">
+                <Toggle label="Confirmation de l’e-mail" hint="Obligatoire à la création du compte" checked={settings.requireEmailConfirmation} onChange={(value) => updateSetting("requireEmailConfirmation", value)} />
+                <Toggle label="Double authentification admin" hint="Renforcer l’accès à l’administration" checked={settings.requireTwoFactorAdmin} onChange={(value) => updateSetting("requireTwoFactorAdmin", value)} />
+                <Field label="Durée maximale de session (heures)"><input type="number" min="1" value={settings.sessionDuration} onChange={(e) => updateSetting("sessionDuration", e.target.value)} /></Field>
+              </SettingsCard>
 
-            <SettingsCard title="Avocats partenaires" description="Règles d’orientation géographique.">
-              <Field label="Rayon de recherche par défaut (km)"><input type="number" value={settings.lawyerRadius} onChange={(e) => updateSetting("lawyerRadius", e.target.value)} /></Field>
-            </SettingsCard>
+              <SettingsCard icon="▤" title="Documents et conservation" description="Limites techniques et politique d’archivage.">
+                <Field label="Taille maximale par fichier (Mo)"><input type="number" min="1" value={settings.maxFileSize} onChange={(e) => updateSetting("maxFileSize", e.target.value)} /></Field>
+                <Field label="Formats autorisés"><input value={settings.allowedFileTypes} onChange={(e) => updateSetting("allowedFileTypes", e.target.value)} /></Field>
+                <Field label="Durée de conservation (années)"><input type="number" min="1" value={settings.retentionYears} onChange={(e) => updateSetting("retentionYears", e.target.value)} /></Field>
+              </SettingsCard>
 
-            <SettingsCard title="Maintenance" description="Contrôle général de disponibilité du service.">
-              <Toggle label="Activer le mode maintenance" checked={settings.maintenanceMode} onChange={(value) => updateSetting("maintenanceMode", value)} />
-            </SettingsCard>
+              <SettingsCard icon="⌖" title="Avocats partenaires" description="Règles d’orientation géographique.">
+                <Field label="Rayon de recherche par défaut (km)"><input type="number" min="1" value={settings.lawyerRadius} onChange={(e) => updateSetting("lawyerRadius", e.target.value)} /></Field>
+                <div className="settings-information"><b>Recherche intelligente</b><span>Le code postal exact reste prioritaire, puis les professionnels du même département sont proposés.</span></div>
+              </SettingsCard>
 
-            <div className="settings-save-bar"><span>Les paramètres sensibles devront ensuite être synchronisés avec Supabase.</span><button type="submit">Enregistrer tous les paramètres</button></div>
+              <SettingsCard icon="⚙" title="Disponibilité du service" description="Contrôle général de la plateforme." danger={settings.maintenanceMode}>
+                <Toggle label="Mode maintenance" hint="Bloquer temporairement l’accès client" checked={settings.maintenanceMode} onChange={(value) => updateSetting("maintenanceMode", value)} />
+                <div className={`maintenance-state ${settings.maintenanceMode ? "offline" : "online"}`}><i /><div><b>{settings.maintenanceMode ? "Plateforme en maintenance" : "Plateforme disponible"}</b><span>{settings.maintenanceMode ? "Les clients seront informés de l’interruption." : "Tous les services peuvent être utilisés normalement."}</span></div></div>
+              </SettingsCard>
+            </div>
+
+            <div className="settings-save-bar">
+              <div><b>Modifications prêtes</b><span>Les réglages sont enregistrés sur l’appareil utilisé.</span></div>
+              <button type="submit">Enregistrer tous les paramètres</button>
+            </div>
           </form>
+        ) : section === "prestations" ? (
+          <>
+            <section className="service-dashboard">
+              <article><span>Prestations actives</span><strong>{activeServices.length}</strong><small>sur {services.length} au catalogue</small></article>
+              <article><span>Tarif moyen</span><strong>{formatPrice(averageServicePrice)}</strong><small>sur les offres actives</small></article>
+              <article><span>Offre d’entrée</span><strong>{formatPrice(13)}</strong><small>analyse initiale</small></article>
+              <article><span>Offres personnalisées</span><strong>{services.filter((service) => !service.builtIn).length}</strong><small>créées par l’administration</small></article>
+            </section>
+
+            <section className="admin-card service-toolbar">
+              <div><small>CATALOGUE CLIENT</small><h2>Prestations disponibles</h2></div>
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une prestation…" />
+              <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)}>{serviceCategories.map((category) => <option key={category}>{category}</option>)}</select>
+            </section>
+
+            {filteredServices.length > 0 ? (
+              <section className="service-grid">
+                {filteredServices.map((service) => <ServiceCard key={service.id} service={service} onToggle={() => toggleService(service.id)} />)}
+              </section>
+            ) : (
+              <section className="admin-card section-empty"><div>⌕</div><b>Aucune prestation ne correspond à la recherche.</b><p>Modifiez le mot-clé ou la catégorie sélectionnée.</p></section>
+            )}
+          </>
         ) : section === "avocats" ? (
           <>
             <form className="admin-card lawyer-search" onSubmit={searchLawyers}>
@@ -390,21 +606,58 @@ export default function AdminSectionPage() {
         </div>
       )}
 
-      {showForm && section !== "dossiers" && section !== "parametres" && section !== "avocats" && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="admin-modal" onSubmit={submitGeneric} onClick={(e) => e.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button><small>{config.eyebrow}</small><h2>{config.action}</h2><label>Titre ou nom<input required placeholder="Saisissez une information" /></label><label>Description<textarea rows={5} placeholder="Ajoutez les détails utiles" /></label><div className="modal-actions"><button type="button" onClick={() => setShowForm(false)}>Annuler</button><button type="submit">Enregistrer</button></div></form></div>}
+      {showForm && section === "prestations" && (
+        <div className="modal-backdrop" onClick={() => setShowForm(false)}>
+          <form className="admin-modal service-modal" onSubmit={addService} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button>
+            <small>CATALOGUE DE SERVICES</small><h2>Créer une prestation</h2>
+            <div className="modal-grid">
+              <label className="full-field">Nom de la prestation<input name="title" required placeholder="Ex. Assistance à la rédaction" /></label>
+              <label>Catégorie<select name="category" defaultValue="Rédaction"><option>Analyse</option><option>Rédaction</option><option>Contrats</option><option>Accompagnement</option><option>Orientation</option><option>Autre</option></select></label>
+              <label>Prix TTC (€)<input name="price" type="number" min="0" step="0.01" required placeholder="49.00" /></label>
+              <label>Délai annoncé<input name="delay" required placeholder="Ex. Sous 72 h" /></label>
+              <label className="service-featured-check"><input name="featured" type="checkbox" /> Mettre cette prestation en avant</label>
+              <label className="full-field">Description<textarea name="description" rows={5} required placeholder="Expliquez clairement ce que comprend la prestation" /></label>
+            </div>
+            <div className="modal-actions"><button type="button" onClick={() => setShowForm(false)}>Annuler</button><button type="submit">Ajouter au catalogue</button></div>
+          </form>
+        </div>
+      )}
+
+      {showForm && section !== "dossiers" && section !== "prestations" && section !== "parametres" && section !== "avocats" && (
+        <div className="modal-backdrop" onClick={() => setShowForm(false)}>
+          <form className="admin-modal" onSubmit={submitGeneric} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button>
+            <small>{config.eyebrow}</small><h2>{config.action}</h2>
+            <label>Titre ou nom<input required placeholder="Saisissez une information" /></label>
+            <label>Description<textarea rows={5} placeholder="Ajoutez les détails utiles" /></label>
+            <div className="modal-actions"><button type="button" onClick={() => setShowForm(false)}>Annuler</button><button type="submit">Enregistrer</button></div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="settings-field"><span>{label}</span>{children}</label>;
+function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
+  return <label className={`settings-field ${wide ? "wide" : ""}`}><span>{label}</span>{children}</label>;
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return <label className="settings-toggle"><span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /><i /></label>;
+function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return <label className="settings-toggle"><span><b>{label}</b>{hint && <small>{hint}</small>}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /><i /></label>;
 }
 
-function SettingsCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <section className="admin-card settings-card"><div className="settings-card-head"><h2>{title}</h2><p>{description}</p></div><div className="settings-card-body">{children}</div></section>;
+function SettingsCard({ icon, title, description, danger = false, children }: { icon: string; title: string; description: string; danger?: boolean; children: React.ReactNode }) {
+  return <section className={`admin-card settings-card ${danger ? "danger" : ""}`}><div className="settings-card-head"><span className="settings-card-icon">{icon}</span><div><h2>{title}</h2><p>{description}</p></div></div><div className="settings-card-body">{children}</div></section>;
+}
+
+function ServiceCard({ service, onToggle }: { service: ServiceOffer; onToggle: () => void }) {
+  return <article className={`service-card ${service.featured ? "featured" : ""} ${service.active ? "" : "inactive"}`}>
+    <div className="service-card-top"><span className="service-icon">{service.icon}</span><div className="service-badges">{service.featured && <small>À LA UNE</small>}<span className={service.active ? "active" : "paused"}>{service.active ? "Active" : "Désactivée"}</span></div></div>
+    <div className="service-card-copy"><small>{service.category.toUpperCase()}</small><h3>{service.title}</h3><p>{service.description}</p></div>
+    <div className="service-meta"><span>◷ {service.delay}</span><span>{service.builtIn ? "Offre LEXIA" : "Offre personnalisée"}</span></div>
+    <div className="service-card-bottom"><div><small>TARIF TTC</small><strong>{formatPrice(service.price)}</strong></div><button type="button" onClick={onToggle}>{service.active ? "Désactiver" : "Activer"}</button></div>
+  </article>;
 }
 
 function ProfileList({ profiles }: { profiles: Profile[] }) {
@@ -429,4 +682,13 @@ function LawyerList({ lawyers, searchedPostalCode }: { lawyers: Lawyer[]; search
       </div>
     </article>;
   })}</div>;
+}
+
+function serviceIcon(category: string) {
+  return ({ Analyse: "⌕", "Rédaction": "✎", Contrats: "▤", Accompagnement: "◎", Orientation: "↗" } as Record<string, string>)[category] || "◇";
+}
+
+function formatPrice(value: number) {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(safeValue);
 }
