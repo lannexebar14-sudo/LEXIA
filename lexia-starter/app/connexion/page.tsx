@@ -28,10 +28,7 @@ export default function ConnexionPage() {
     const email = String(form.get("email") || "").trim();
     const password = String(form.get("password") || "");
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError || !data.user) {
       setError("Adresse e-mail ou mot de passe incorrect.");
@@ -58,7 +55,6 @@ export default function ConnexionPage() {
   async function handleResetPassword() {
     const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
     const email = emailInput?.value.trim() || "";
-
     setError("");
     setMessage("");
 
@@ -72,76 +68,81 @@ export default function ConnexionPage() {
       redirectTo: `${window.location.origin}/connexion`,
     });
 
-    if (resetError) {
-      setError("Impossible d'envoyer l'e-mail de réinitialisation.");
-    } else {
-      setMessage("Un lien de réinitialisation a été envoyé à votre adresse e-mail.");
-    }
+    if (resetError) setError("Impossible d'envoyer l'e-mail de réinitialisation.");
+    else setMessage("Un lien de réinitialisation vient de vous être envoyé.");
+
     setResetLoading(false);
   }
 
   return (
-    <main className="auth-page">
-      <section className="auth-panel auth-intro">
-        <Link href="/" className="logo">LEXIA<span>.</span></Link>
-        <div>
-          <span className="eyebrow">Bienvenue sur LEXIA</span>
-          <h1>Retrouvez votre dossier et vos échanges.</h1>
-          <p className="lead">
-            Connectez-vous pour suivre vos demandes, transmettre de nouveaux documents et échanger avec votre conseiller.
-          </p>
-          <div className="auth-benefits">
-            <span>✓ Accès sécurisé à vos dossiers</span>
-            <span>✓ Messages et documents centralisés</span>
-            <span>✓ Suivi de vos prestations et paiements</span>
+    <main className="signup-shell">
+      <section className="signup-showcase">
+        <div className="signup-showcase-top">
+          <Link href="/" className="signup-logo">LEXIA<span>.</span></Link>
+          <Link href="/" className="signup-back">← Retour à l'accueil</Link>
+        </div>
+
+        <div className="signup-showcase-content">
+          <span className="signup-badge">ESPACE CLIENT SÉCURISÉ</span>
+          <h1>Votre dossier juridique, toujours à portée de main.</h1>
+          <p>Connectez-vous pour suivre l'avancement de vos demandes, envoyer des documents et échanger avec votre conseiller.</p>
+
+          <div className="signup-points">
+            <div><strong>01</strong><span>Consultez vos dossiers en cours</span></div>
+            <div><strong>02</strong><span>Retrouvez tous vos messages et documents</span></div>
+            <div><strong>03</strong><span>Suivez vos prestations et paiements</span></div>
+          </div>
+        </div>
+
+        <div className="signup-trust-card">
+          <div className="signup-trust-icon">✓</div>
+          <div>
+            <strong>Connexion confidentielle</strong>
+            <p>Vos informations et vos documents restent protégés dans votre espace personnel.</p>
           </div>
         </div>
       </section>
 
-      <section className="auth-panel auth-form-wrap">
-        <div className="auth-card auth-card-login">
-          <div className="auth-card-heading">
-            <span className="auth-kicker">Espace personnel</span>
+      <section className="signup-form-side">
+        <div className="signup-form-card login-card">
+          <div className="signup-form-heading">
+            <span>ESPACE PERSONNEL</span>
             <h2>Connexion</h2>
-            <p className="auth-muted">Accédez à votre espace client ou administrateur.</p>
+            <p>Accédez à votre espace client ou administrateur.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form onSubmit={handleSubmit} className="signup-form login-form">
             <label>
-              Adresse e-mail
+              <span>Adresse e-mail</span>
               <input name="email" type="email" required autoComplete="email" placeholder="vous@exemple.fr" />
             </label>
 
             <label>
-              Mot de passe
+              <span>Mot de passe</span>
               <input name="password" type="password" required autoComplete="current-password" placeholder="Votre mot de passe" />
             </label>
 
             <div className="login-options">
-              <label className="remember-row">
+              <label className="login-remember">
                 <input type="checkbox" name="remember" />
                 <span>Rester connecté</span>
               </label>
-              <button type="button" className="link-button" onClick={handleResetPassword} disabled={resetLoading}>
+              <button type="button" className="login-reset" onClick={handleResetPassword} disabled={resetLoading}>
                 {resetLoading ? "Envoi..." : "Mot de passe oublié ?"}
               </button>
             </div>
 
-            {error && <div className="auth-alert error">{error}</div>}
-            {message && <div className="auth-alert success">{message}</div>}
+            {error && <div className="signup-alert signup-error">{error}</div>}
+            {message && <div className="signup-alert signup-success">{message}</div>}
 
-            <button className="btn btn-primary auth-submit" disabled={loading}>
+            <button className="signup-submit" disabled={loading}>
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
 
-          <div className="auth-separator"><span>ou</span></div>
-
-          <Link href="/inscription" className="btn btn-outline auth-create-link">
-            Créer un compte LEXIA
-          </Link>
-
-          <p className="auth-bottom auth-security-note">Connexion protégée et données confidentielles.</p>
+          <div className="login-divider"><span>ou</span></div>
+          <Link href="/inscription" className="login-create-account">Créer un compte LEXIA</Link>
+          <p className="signup-security-note">Connexion sécurisée · Données confidentielles</p>
         </div>
       </section>
     </main>
