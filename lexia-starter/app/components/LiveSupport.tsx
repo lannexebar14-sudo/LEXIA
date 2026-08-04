@@ -33,71 +33,49 @@ export default function LiveSupport() {
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  async function loadMessages(currentSessionId: string, currentUserId: string | null) {
-    let request = supabase
+  async function loadMessages(currentSessionId: string) {
+    const { data } = await supabase
       .from("support_chat_messages")
       .select("id,sender_type,message,created_at")
       .eq("session_id", currentSessionId)
       .order("created_at", { ascending: true })
       .limit(100);
-
-    if (currentUserId) request = request.or(`user_id.eq.${currentUserId},session_id.eq.${currentSessionId}`);
-
-    const { data } = await request;
     setMessages((data as Message[]) || []);
   }
 
   useEffect(() => {
     const currentSessionId = getSessionId();
     setSessionId(currentSessionId);
-
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     supabase.auth.getUser().then(async ({ data }) => {
       const id = data.user?.id || null;
       setUserId(id);
-
       if (data.user?.email) setEmail(data.user.email);
 
       if (id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", id)
-          .single();
+        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", id).single();
         if (profile?.full_name) setName(profile.full_name);
       }
 
-      await loadMessages(currentSessionId, id);
+      await loadMessages(currentSessionId);
 
       channel = supabase
         .channel(`support-${currentSessionId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "support_chat_messages",
-            filter: `session_id=eq.${currentSessionId}`,
-          },
-          (payload) => setMessages((current) => [...current, payload.new as Message])
-        )
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_chat_messages", filter: `session_id=eq.${currentSessionId}` }, (payload) => {
+          setMessages((current) => [...current, payload.new as Message]);
+        })
         .subscribe();
     });
 
-    return () => {
-      if (channel) supabase.removeChannel(channel);
-    };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, open]);
 
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!text.trim() || !sessionId || sending) return;
-
     if (!userId && (!name.trim() || !email.trim())) {
       setError("Merci de renseigner votre nom et votre e-mail.");
       return;
@@ -106,6 +84,25 @@ export default function LiveSupport() {
     setSending(true);
     setError("");
     const content = text.trim();
+    const now = new Date().toISOString();
+
+    const { error: conversationError } = await supabase.from("support_chat_conversations").upsert({
+      session_id: sessionId,
+      user_id: userId,
+      visitor_name: name.trim() || null,
+      visitor_email: email.trim() || null,
+      status: "active",
+      last_message_at: now,
+      resolved_at: null,
+      resolved_by: null,
+      updated_at: now,
+    }, { onConflict: "session_id" });
+
+    if (conversationError) {
+      setError("La conversation n’a pas pu être ouverte.");
+      setSending(false);
+      return;
+    }
 
     const { error: insertError } = await supabase.from("support_chat_messages").insert({
       session_id: sessionId,
@@ -131,41 +128,22 @@ export default function LiveSupport() {
     <div className="live-support">
       {open && (
         <section className="live-support-panel">
-          <header>
-            <div><span className="live-dot" /> <b>Assistance LEXIA</b><small>Échangez directement avec notre équipe</small></div>
-            <button onClick={() => setOpen(false)} aria-label="Fermer">×</button>
-          </header>
-
+          <header><div><span className="live-dot" /> <b>Assistance LEXIA</b><small>Échangez directement avec notre équipe</small></div><button onClick={() => setOpen(false)} aria-label="Fermer">×</button></header>
           <div className="live-messages">
             <div className="live-message support">Bonjour 👋 Comment pouvons-nous vous aider ?</div>
-            {messages.map((item) => (
-              <div key={item.id} className={`live-message ${item.sender_type === "admin" || item.sender_type === "jurist" ? "support" : "client"}`}>
-                {item.message}
-                <small>{new Date(item.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
-              </div>
-            ))}
+            {messages.map((item) => <div key={item.id} className={`live-message ${item.sender_type === "admin" || item.sender_type === "jurist" ? "support" : "client"}`}>{item.message}<small>{new Date(item.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small></div>)}
             <div ref={bottomRef} />
           </div>
-
           <form onSubmit={send}>
-            {!userId && (
-              <div className="live-identity">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Votre e-mail" />
-              </div>
-            )}
+            {!userId && <div className="live-identity"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Votre e-mail" /></div>}
             <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Écrivez votre message…" rows={2} />
             {error && <p className="live-error">{error}</p>}
             <button disabled={!text.trim() || sending}>{sending ? "…" : "Envoyer"}</button>
           </form>
-
           <footer>Conversation sécurisée · LEXIA</footer>
         </section>
       )}
-
-      <button className="live-support-button" onClick={() => setOpen((value) => !value)} aria-label="Ouvrir l'assistance">
-        <span>💬</span><div><b>Besoin d’aide ?</b><small>Discutez avec nous</small></div>
-      </button>
+      <button className="live-support-button" onClick={() => setOpen((value) => !value)} aria-label="Ouvrir l'assistance"><span>💬</span><div><b>Besoin d’aide ?</b><small>Discutez avec nous</small></div></button>
     </div>
   );
 }
