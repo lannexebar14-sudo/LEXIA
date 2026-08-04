@@ -7,6 +7,7 @@ import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
 import MaintenanceGate from "./components/MaintenanceGate";
+import AdminNavigationFix from "./components/AdminNavigationFix";
 
 export const metadata: Metadata = {
   title: "LEXIA — Assistance juridique",
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <MaintenanceGate>
           {children}
+          <AdminNavigationFix />
           <MobilePlatformBadge />
           <PwaExperience />
           <LiveSupport />
