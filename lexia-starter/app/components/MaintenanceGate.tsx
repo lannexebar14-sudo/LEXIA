@@ -88,10 +88,35 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       if (document.visibilityState === "visible") loadStatus();
     }
 
+    async function handleSignedOut() {
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+      window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
+
+      const { data, error: statusError } = await supabase
+        .from("platform_settings")
+        .select("maintenance_mode")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (!active || statusError || data?.maintenance_mode !== true) return;
+
+      setState("maintenance");
+      if (window.location.pathname !== "/") {
+        window.location.replace("/");
+      }
+    }
+
     loadStatus();
     const interval = window.setInterval(loadStatus, 3000);
     window.addEventListener("focus", loadStatus);
     document.addEventListener("visibilitychange", checkWhenVisible);
+
+    const { data: authStateListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      window.setTimeout(() => {
+        void handleSignedOut();
+      }, 0);
+    });
 
     const channel = supabase
       .channel("lexia-platform-maintenance")
@@ -110,6 +135,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       window.clearInterval(interval);
       window.removeEventListener("focus", loadStatus);
       document.removeEventListener("visibilitychange", checkWhenVisible);
+      authStateListener.subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [supabase]);
