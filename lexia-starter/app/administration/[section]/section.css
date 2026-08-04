@@ -3,3 +3,4 @@
 
 @media (max-width:900px){.lawyer-search{grid-template-columns:1fr 1fr}.lawyer-search>button{grid-column:1/-1}.lawyer-card{padding:18px}.lawyer-title{display:grid}.lawyer-title>b{width:max-content}}
 @media (max-width:600px){.lawyer-search{grid-template-columns:1fr;padding:18px}.lawyer-search label,.lawyer-search>button{grid-column:1}.lawyer-card{align-items:flex-start}.lawyer-avatar{width:42px;height:42px;flex-basis:42px}.lawyer-contact{display:grid;gap:8px}}
+.lawyer-location{display:grid;justify-items:end;gap:5px}.lawyer-location>b{height:max-content;border-radius:999px;background:#eef2f7;padding:6px 10px;color:#334158}.lawyer-location small{white-space:nowrap;border-radius:999px;padding:4px 8px;font-size:.7rem;font-weight:800}.lawyer-location small.exact{background:#dff3e7;color:#17653b}.lawyer-location small.nearby{background:#f5ead4;color:#70531e}

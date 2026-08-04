@@ -194,24 +194,39 @@ export default function AdminSectionPage() {
     setLawyerSearchStarted(true);
     setNotice("");
 
-    let request = supabase
-      .from("lawyers")
-      .select("cnbf_code,civility,last_name,first_name,bar_name,firm_name,address_line_1,address_line_2,postal_code,city,phone,email,specialty_1,specialty_2,specialty_3")
-      .order("last_name", { ascending: true })
-      .limit(50);
+    const selectedFields = "cnbf_code,civility,last_name,first_name,bar_name,firm_name,address_line_1,address_line_2,postal_code,city,phone,email,specialty_1,specialty_2,specialty_3";
+    const specialtyFilter = specialty.replace(/[,%()]/g, " ").trim();
+    let data: Lawyer[] | null = null;
+    let error: { message: string } | null = null;
 
-    if (postalCode) request = request.eq("postal_code", postalCode);
-    if (specialty) {
-      const safeSpecialty = specialty.replace(/[,%()]/g, " ").trim();
-      request = request.or(`specialty_1.ilike.%${safeSpecialty}%,specialty_2.ilike.%${safeSpecialty}%,specialty_3.ilike.%${safeSpecialty}%`);
+    if (postalCode) {
+      const departmentPrefix = postalCode.startsWith("97") ? postalCode.slice(0, 3) : postalCode.slice(0, 2);
+      let exactRequest = supabase.from("lawyers").select(selectedFields).eq("postal_code", postalCode).order("last_name").limit(50);
+      let nearbyRequest = supabase.from("lawyers").select(selectedFields).like("postal_code", `${departmentPrefix}%`).neq("postal_code", postalCode).order("postal_code").order("last_name").limit(50);
+      if (specialtyFilter) {
+        const filter = `specialty_1.ilike.%${specialtyFilter}%,specialty_2.ilike.%${specialtyFilter}%,specialty_3.ilike.%${specialtyFilter}%`;
+        exactRequest = exactRequest.or(filter);
+        nearbyRequest = nearbyRequest.or(filter);
+      }
+      const [exactResult, nearbyResult] = await Promise.all([exactRequest, nearbyRequest]);
+      error = exactResult.error || nearbyResult.error;
+      data = [...((exactResult.data as Lawyer[]) || []), ...((nearbyResult.data as Lawyer[]) || [])].slice(0, 50);
+    } else {
+      const request = supabase.from("lawyers").select(selectedFields).or(`specialty_1.ilike.%${specialtyFilter}%,specialty_2.ilike.%${specialtyFilter}%,specialty_3.ilike.%${specialtyFilter}%`).order("last_name").limit(50);
+      const result = await request;
+      error = result.error;
+      data = (result.data as Lawyer[]) || [];
     }
-
-    const { data, error } = await request;
     if (error) {
       setLawyers([]);
       setNotice("La recherche n’a pas pu aboutir. Réessayez dans quelques instants.");
     } else {
-      setLawyers((data as Lawyer[]) || []);
+      const lawyerRows = (data as Lawyer[]) || [];
+      setLawyers(lawyerRows.sort((a, b) => {
+        const aExact = a.postal_code === postalCode ? 0 : 1;
+        const bExact = b.postal_code === postalCode ? 0 : 1;
+        return aExact - bExact || (a.postal_code || "").localeCompare(b.postal_code || "") || a.last_name.localeCompare(b.last_name);
+      }));
     }
     setLawyerSearching(false);
   }
@@ -304,7 +319,7 @@ export default function AdminSectionPage() {
               <div className="lawyer-search-intro">
                 <small>RECHERCHE RÉSERVÉE À L’ADMINISTRATION</small>
                 <h2>Trouver rapidement un avocat</h2>
-                <p>Utilisez le code postal, la spécialité, ou les deux critères ensemble.</p>
+                <p>Les avocats du code postal apparaissent en premier, puis ceux du même département.</p>
               </div>
               <label>
                 <span>Code postal</span>
@@ -320,7 +335,7 @@ export default function AdminSectionPage() {
 
             <section className="admin-card section-content lawyer-results-card">
               <div className="admin-card-head"><div><small>RÉSULTATS</small><h2>Avocats trouvés</h2></div><span className="count-pill">{lawyers.length}</span></div>
-              {lawyerSearching ? <div className="section-empty"><div>⌕</div><b>Recherche en cours…</b></div> : lawyers.length > 0 ? <LawyerList lawyers={lawyers} /> : <div className="section-empty"><div>⌖</div><b>{lawyerSearchStarted ? "Aucun avocat ne correspond à ces critères." : "Saisissez un code postal ou une spécialité."}</b><p>Les 50 premiers résultats correspondants seront affichés ici.</p></div>}
+              {lawyerSearching ? <div className="section-empty"><div>⌕</div><b>Recherche en cours…</b></div> : lawyers.length > 0 ? <LawyerList lawyers={lawyers} searchedPostalCode={lawyerPostalCode.trim()} /> : <div className="section-empty"><div>⌖</div><b>{lawyerSearchStarted ? "Aucun avocat ne correspond à ces critères." : "Saisissez un code postal ou une spécialité."}</b><p>Les avocats du secteur seront affichés ici.</p></div>}
             </section>
           </>
         ) : (
@@ -396,14 +411,14 @@ function ProfileList({ profiles }: { profiles: Profile[] }) {
   return <div className="profile-list">{profiles.map((profile) => <article key={profile.id}><div className="profile-avatar">{(profile.full_name || profile.company_name || "C").slice(0, 1).toUpperCase()}</div><div><b>{profile.full_name || profile.company_name || "Utilisateur"}</b><span>{profile.account_type || profile.role || "client"}</span></div><button>Ouvrir</button></article>)}</div>;
 }
 
-function LawyerList({ lawyers }: { lawyers: Lawyer[] }) {
+function LawyerList({ lawyers, searchedPostalCode }: { lawyers: Lawyer[]; searchedPostalCode: string }) {
   return <div className="lawyer-list">{lawyers.map((lawyer) => {
     const specialties = [lawyer.specialty_1, lawyer.specialty_2, lawyer.specialty_3].filter(Boolean) as string[];
     const address = [lawyer.address_line_1, lawyer.address_line_2, lawyer.postal_code, lawyer.city].filter(Boolean).join(" · ");
     return <article key={lawyer.cnbf_code} className="lawyer-card">
       <div className="lawyer-avatar">{lawyer.first_name.slice(0, 1)}{lawyer.last_name.slice(0, 1)}</div>
       <div className="lawyer-details">
-        <div className="lawyer-title"><div><h3>{lawyer.civility ? `${lawyer.civility} ` : ""}{lawyer.first_name} {lawyer.last_name}</h3><span>Barreau de {lawyer.bar_name}</span></div><b>{lawyer.postal_code || "—"}</b></div>
+        <div className="lawyer-title"><div><h3>{lawyer.civility ? `${lawyer.civility} ` : ""}{lawyer.first_name} {lawyer.last_name}</h3><span>Barreau de {lawyer.bar_name}</span></div><div className="lawyer-location"><b>{lawyer.postal_code || "—"}</b>{searchedPostalCode && lawyer.postal_code && <small className={lawyer.postal_code === searchedPostalCode ? "exact" : "nearby"}>{lawyer.postal_code === searchedPostalCode ? "Code postal exact" : "À proximité"}</small>}</div></div>
         {lawyer.firm_name && <p><strong>Cabinet :</strong> {lawyer.firm_name}</p>}
         {address && <p><strong>Adresse :</strong> {address}</p>}
         {specialties.length > 0 && <div className="lawyer-specialties">{specialties.map((specialty) => <span key={specialty}>{specialty}</span>)}</div>}
