@@ -1,0 +1,49 @@
+.admin-header-buttons{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.admin-new-dossier{
+  min-height:46px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px 16px;
+  border-radius:12px;
+  background:#0c2340;
+  color:#fff;
+  font-weight:900;
+  white-space:nowrap;
+  box-shadow:0 7px 20px rgba(12,35,64,.12);
+}
+
+@media(max-width:900px){
+  .admin-actions{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:start!important;
+    gap:8px!important;
+  }
+
+  .admin-header-buttons{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+
+  .admin-new-dossier{
+    width:100%;
+    min-height:46px;
+    padding:10px 12px;
+    font-size:12px;
+  }
+}
+
+@media(max-width:520px){
+  .admin-header-buttons{
+    grid-template-columns:1fr;
+  }
+}
