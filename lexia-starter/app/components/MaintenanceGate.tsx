@@ -27,6 +27,8 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let firstCheckCompleted = false;
+    let checkInProgress = false;
     window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
 
     async function hasTemporaryAccess() {
@@ -59,21 +61,36 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
     }
 
     async function loadStatus() {
-      const { data, error: statusError } = await supabase
-        .from("platform_settings")
-        .select("maintenance_mode")
-        .eq("id", "main")
-        .maybeSingle();
+      if (checkInProgress) return;
+      checkInProgress = true;
 
-      if (statusError || typeof data?.maintenance_mode !== "boolean") {
-        if (active) setState("open");
-        return;
+      try {
+        const { data, error: statusError } = await supabase
+          .from("platform_settings")
+          .select("maintenance_mode")
+          .eq("id", "main")
+          .maybeSingle();
+
+        if (statusError || typeof data?.maintenance_mode !== "boolean") {
+          if (!firstCheckCompleted && active) setState("open");
+          return;
+        }
+
+        await applyMaintenanceState(data.maintenance_mode);
+      } finally {
+        firstCheckCompleted = true;
+        checkInProgress = false;
       }
+    }
 
-      await applyMaintenanceState(data.maintenance_mode);
+    function checkWhenVisible() {
+      if (document.visibilityState === "visible") loadStatus();
     }
 
     loadStatus();
+    const interval = window.setInterval(loadStatus, 3000);
+    window.addEventListener("focus", loadStatus);
+    document.addEventListener("visibilitychange", checkWhenVisible);
 
     const channel = supabase
       .channel("lexia-platform-maintenance")
@@ -89,6 +106,9 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", loadStatus);
+      document.removeEventListener("visibilitychange", checkWhenVisible);
       supabase.removeChannel(channel);
     };
   }, [supabase]);
