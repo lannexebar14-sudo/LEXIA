@@ -1,5 +1,6 @@
 "use client";
 
+// Le statut global est revérifié régulièrement pour bloquer aussi les sessions déjà ouvertes.
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
