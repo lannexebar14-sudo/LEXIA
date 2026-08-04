@@ -5,6 +5,7 @@ const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishabl
 
 function isAllowedDuringMaintenance(pathname: string) {
   return pathname.startsWith("/administration")
+    || pathname.startsWith("/connexion")
     || pathname.startsWith("/maintenance")
     || pathname.startsWith("/api")
     || pathname.startsWith("/_next")
