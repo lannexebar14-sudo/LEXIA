@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "../../../lib/supabase/client";
+import "./admin-support.css";
 
 type SupportRow = {
   id: string;
