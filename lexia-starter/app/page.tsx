@@ -170,7 +170,7 @@ export default function HomePage() {
           <div><Link href="/" className="footer-logo">LEXIA<span>.</span></Link><p>L’assistance juridique en ligne, simple, humaine et sécurisée.</p></div>
           <div><b>Service</b><Link href="#fonctionnement">Fonctionnement</Link><Link href="#domaines">Domaines</Link><Link href="#tarifs">Tarifs</Link></div>
           <div><b>Mon espace</b><Link href="/inscription">Créer un compte</Link><Link href="/connexion">Se connecter</Link><Link href="/nouveau-dossier">Déposer un dossier</Link></div>
-          <div><b>Informations</b><span>Confidentialité</span><span>Conditions générales</span><span>Mentions légales</span></div>
+          <div><b>Informations</b><Link href="/confidentialite">Confidentialité</Link><Link href="/conditions">Conditions générales</Link><Link href="/mentions-legales">Mentions légales</Link></div>
         </div>
         <div className="public-container footer-bottom"><span>© 2026 LEXIA. Tous droits réservés.</span><span>Service en cours de développement — cadre juridique à finaliser avant lancement.</span></div>
       </footer>
