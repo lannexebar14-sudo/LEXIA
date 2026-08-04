@@ -2,22 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import "./connexion.css";
 
 export default function ConnexionPage() {
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(
-    searchParams.get("confirmation") === "ok"
-      ? "Votre adresse e-mail est confirmée. Vous pouvez maintenant vous connecter."
-      : ""
-  );
+  const [message, setMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
