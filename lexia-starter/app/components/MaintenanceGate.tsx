@@ -104,7 +104,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       }
     }
 
-    loadStatus();
+    void loadStatus();
     const interval = window.setInterval(loadStatus, 3000);
     window.addEventListener("focus", loadStatus);
     document.addEventListener("visibilitychange", checkWhenVisible);
@@ -123,7 +123,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
         { event: "UPDATE", schema: "public", table: "platform_settings", filter: "id=eq.main" },
         (payload) => {
           const maintenanceMode = Boolean((payload.new as { maintenance_mode?: boolean }).maintenance_mode);
-          applyMaintenanceState(maintenanceMode);
+          void applyMaintenanceState(maintenanceMode);
         },
       )
       .subscribe();
@@ -134,7 +134,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       window.removeEventListener("focus", loadStatus);
       document.removeEventListener("visibilitychange", checkWhenVisible);
       authStateListener.subscription.unsubscribe();
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [supabase]);
 
@@ -155,7 +155,10 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
 
       window.localStorage.setItem(ACCESS_TOKEN_KEY, data.token);
       setState("open");
-      window.location.replace("/administration");
+
+      // La connexion est autorisée par le middleware pendant la maintenance.
+      // Elle redirige automatiquement vers l’administration si la session admin existe déjà.
+      window.location.replace("/connexion?redirect=%2Fadministration&maintenance=1");
     } catch (unlockError) {
       setError(unlockError instanceof Error ? unlockError.message : "Code administrateur incorrect.");
       setCode("");
