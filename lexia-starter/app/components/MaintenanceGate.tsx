@@ -2,7 +2,6 @@
 
 // Le statut global est revérifié régulièrement pour bloquer aussi les sessions déjà ouvertes.
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import styles from "./MaintenanceGate.module.css";
 
@@ -19,7 +18,6 @@ type MaintenanceAccessResult = {
 };
 
 export default function MaintenanceGate({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [state, setState] = useState<GateState>("loading");
   const [code, setCode] = useState("");
@@ -156,13 +154,25 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
       if (!data?.valid || !data.token) throw new Error(data?.error || "Code administrateur incorrect.");
 
       window.localStorage.setItem(ACCESS_TOKEN_KEY, data.token);
+
+      const { data: authData } = await supabase.auth.getUser();
+      let destination = "/connexion?redirect=/administration";
+
+      if (authData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        if (profile?.role === "admin") destination = "/administration";
+      }
+
       setState("open");
-      router.push("/administration");
-      router.refresh();
+      window.location.replace(destination);
     } catch (unlockError) {
       setError(unlockError instanceof Error ? unlockError.message : "Code administrateur incorrect.");
       setCode("");
-    } finally {
       setCheckingCode(false);
     }
   }
@@ -233,7 +243,7 @@ export default function MaintenanceGate({ children }: { children: ReactNode }) {
           {error && <div className={styles.error} role="alert">! {error}</div>}
 
           <button type="submit" disabled={checkingCode || code.length !== 6}>
-            {checkingCode ? "Vérification…" : "Accéder à l’administration"}
+            {checkingCode ? "Ouverture…" : "Accéder à l’administration"}
             {!checkingCode && <span>→</span>}
           </button>
 
