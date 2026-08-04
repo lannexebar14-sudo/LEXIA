@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import NotificationTestButton from "./NotificationTestButton";
 import "./admin.css";
+import "./admin-actions.css";
 import "../mobile-app.css";
 
 export default function AdministrationPage() {
