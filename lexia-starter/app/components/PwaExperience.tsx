@@ -78,6 +78,22 @@ export default function PwaExperience() {
       setMode("notifications");
     };
 
+    const onOpenApplicationPanel = () => {
+      window.localStorage.removeItem(DISMISSED_KEY);
+      setMessage("");
+
+      if (isStandalone()) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          setMessage("Lexia est déjà installée et les notifications sont actives sur cet appareil.");
+          setMode("success");
+        } else {
+          setMode("notifications");
+        }
+      } else {
+        setMode("install");
+      }
+    };
+
     const clearBadge = () => {
       if (document.visibilityState !== "visible") return;
       const appNavigator = navigator as AppNavigator;
@@ -86,6 +102,7 @@ export default function PwaExperience() {
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener("lexia-open-app-prompt", onOpenApplicationPanel);
     document.addEventListener("visibilitychange", clearBadge);
     clearBadge();
 
@@ -93,6 +110,7 @@ export default function PwaExperience() {
       if (timer) clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("lexia-open-app-prompt", onOpenApplicationPanel);
       document.removeEventListener("visibilitychange", clearBadge);
     };
   }, []);
@@ -136,7 +154,7 @@ export default function PwaExperience() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        throw new Error("Autorisation refusée. Vous pourrez la réactiver dans Réglages > Notifications > LEXIA.");
+        throw new Error("Autorisation refusée. Vous pourrez la réactiver dans les réglages de notifications de votre téléphone.");
       }
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -154,7 +172,7 @@ export default function PwaExperience() {
       const subscriptionJson = subscription.toJSON();
       const p256dh = subscriptionJson.keys?.p256dh;
       const authKey = subscriptionJson.keys?.auth;
-      if (!p256dh || !authKey) throw new Error("L’iPhone n’a pas retourné les clés de notification attendues.");
+      if (!p256dh || !authKey) throw new Error("Le téléphone n’a pas retourné les clés de notification attendues.");
 
       const { error: saveError } = await supabase.from("push_subscriptions").upsert({
         user_id: user.id,
@@ -179,7 +197,7 @@ export default function PwaExperience() {
       if (testError) {
         setMessage("Les notifications sont activées. Le message de test n’a simplement pas pu être envoyé.");
       } else {
-        setMessage("Une notification de test vient d’être envoyée sur votre iPhone.");
+        setMessage("Une notification de test vient d’être envoyée sur votre téléphone.");
       }
       window.localStorage.removeItem(DISMISSED_KEY);
       setMode("success");
@@ -194,11 +212,11 @@ export default function PwaExperience() {
   const title = mode === "install" || mode === "instructions"
     ? "Installer l’application"
     : mode === "success"
-      ? "Notifications activées"
+      ? "Application Lexia"
       : "Activer les notifications";
 
   const description = mode === "install" || mode === "instructions"
-    ? "Ajoutez Lexia à votre écran d’accueil pour l’utiliser comme une véritable application iPhone."
+    ? "Ajoutez Lexia à votre écran d’accueil pour l’utiliser comme une véritable application sur iOS ou Android."
     : "Recevez les nouveaux messages, propositions payantes et changements de statut de vos dossiers.";
 
   return (
@@ -225,8 +243,8 @@ export default function PwaExperience() {
           {mode === "instructions" && (
             <>
               <div className={styles.steps}>
-                <div className={styles.step}><b>1</b><span>Dans Safari, touchez le bouton <strong>Partager</strong>.</span></div>
-                <div className={styles.step}><b>2</b><span>Choisissez <strong>Sur l’écran d’accueil</strong>.</span></div>
+                <div className={styles.step}><b>1</b><span>Sur iPhone, ouvrez Lexia dans <strong>Safari</strong> puis touchez <strong>Partager</strong>.</span></div>
+                <div className={styles.step}><b>2</b><span>Choisissez <strong>Sur l’écran d’accueil</strong>. Sur Android, utilisez <strong>Installer l’application</strong> dans le menu du navigateur.</span></div>
                 <div className={styles.step}><b>3</b><span>Ouvrez ensuite Lexia depuis sa nouvelle icône.</span></div>
               </div>
               <div className={styles.actions}><button className={styles.primary} type="button" onClick={dismiss}>J’ai compris</button></div>
@@ -235,7 +253,7 @@ export default function PwaExperience() {
 
           {mode === "notifications" && (
             <>
-              <div className={styles.notice}>Sur iPhone, Apple demande que l’autorisation soit déclenchée par votre appui sur le bouton ci-dessous.</div>
+              <div className={styles.notice}>Votre téléphone demande que l’autorisation soit déclenchée par votre appui sur le bouton ci-dessous.</div>
               <div className={styles.actions}>
                 <button className={styles.primary} type="button" onClick={activateNotifications}>Autoriser les notifications</button>
                 <button className={styles.secondary} type="button" onClick={dismiss}>Plus tard</button>
