@@ -1,0 +1,221 @@
+@media (max-width: 760px) {
+  body { overflow-x: hidden; }
+
+  .client-app,
+  .admin-app {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .client-sidebar,
+  .admin-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    height: auto;
+    padding: 14px 14px 10px;
+    display: block;
+    box-shadow: 0 8px 24px rgba(6, 24, 44, .16);
+  }
+
+  .app-logo,
+  .admin-logo {
+    display: inline-block;
+    margin: 0 0 12px;
+    font-size: 23px;
+  }
+
+  .admin-badge {
+    display: inline-flex;
+    margin: 0 0 12px 10px;
+    padding: 6px 9px;
+    vertical-align: 3px;
+  }
+
+  .client-sidebar nav,
+  .admin-sidebar nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .client-sidebar nav::-webkit-scrollbar,
+  .admin-sidebar nav::-webkit-scrollbar { display: none; }
+
+  .client-sidebar nav a,
+  .admin-sidebar nav a {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 11px 13px;
+    border-radius: 11px;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .client-sidebar button,
+  .admin-sidebar button {
+    position: absolute;
+    top: 13px;
+    right: 14px;
+    width: auto;
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 0;
+    border-radius: 10px;
+  }
+
+  .client-sidebar button::after,
+  .admin-sidebar button::after {
+    content: "Sortir";
+    font-size: 12px;
+  }
+
+  .client-content,
+  .admin-main {
+    padding: 20px 14px 42px;
+  }
+
+  .app-topbar,
+  .admin-topbar {
+    gap: 14px;
+  }
+
+  .app-topbar h1,
+  .admin-topbar h1 {
+    font-size: 28px;
+    line-height: 1.08;
+  }
+
+  .app-primary,
+  .admin-actions,
+  .admin-actions button {
+    width: 100%;
+  }
+
+  .app-primary,
+  .admin-actions button {
+    min-height: 48px;
+    text-align: center;
+  }
+
+  .admin-actions span { display: none; }
+
+  .client-hero {
+    margin: 20px 0;
+    padding: 24px 20px;
+    border-radius: 20px;
+  }
+
+  .client-hero h2 {
+    font-size: 28px;
+    line-height: 1.08;
+  }
+
+  .client-hero p {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .client-hero > a {
+    width: 100%;
+    min-height: 48px;
+    text-align: center;
+  }
+
+  .stats-grid,
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stats-grid article,
+  .admin-stats article,
+  .app-card,
+  .admin-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .stats-grid strong,
+  .admin-stats strong {
+    font-size: 27px;
+  }
+
+  .client-columns,
+  .admin-grid,
+  .admin-grid.lower {
+    display: block;
+  }
+
+  .client-columns > *,
+  .admin-grid > *,
+  .admin-grid.lower > * {
+    margin-bottom: 12px;
+  }
+
+  .card-title,
+  .admin-card-head {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .card-title h3,
+  .help-card h3,
+  .admin-card-head h2 {
+    font-size: 22px;
+  }
+
+  .card-title > a,
+  .admin-card-head > button {
+    flex: 0 0 auto;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  .empty-state {
+    padding: 34px 8px;
+  }
+
+  .empty-state > a {
+    display: flex;
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .admin-table-head { display: none; }
+
+  .priority-item {
+    align-items: flex-start;
+    padding: 14px 0;
+  }
+
+  .offer-row { padding: 13px 0; }
+}
+
+@media (max-width: 430px) {
+  .stats-grid,
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .client-content,
+  .admin-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .client-hero {
+    padding: 22px 17px;
+  }
+
+  .app-topbar h1,
+  .admin-topbar h1 {
+    font-size: 25px;
+  }
+
+  .admin-topbar p { font-size: 14px; line-height: 1.5; }
+}
