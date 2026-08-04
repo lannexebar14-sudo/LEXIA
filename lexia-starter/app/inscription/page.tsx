@@ -53,7 +53,7 @@ export default function InscriptionPage() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      setMessage("Compte créé. Consultez votre boîte e-mail pour confirmer votre inscription.");
+      setMessage("Votre compte est créé. Consultez votre boîte e-mail pour confirmer votre inscription.");
       event.currentTarget.reset();
     }
 
@@ -61,49 +61,100 @@ export default function InscriptionPage() {
   }
 
   return (
-    <main className="auth-page">
-      <section className="auth-panel auth-intro">
-        <Link href="/" className="logo">LEXIA<span>.</span></Link>
-        <div>
-          <span className="eyebrow">Espace sécurisé</span>
-          <h1>Créez votre espace juridique.</h1>
-          <p className="lead">Déposez vos documents, expliquez votre situation et échangez avec notre équipe depuis un seul espace.</p>
-          <div className="auth-benefits">
-            <span>✓ Dossier confidentiel</span>
-            <span>✓ Messagerie sécurisée</span>
-            <span>✓ Orientation vers un avocat si nécessaire</span>
+    <main className="signup-shell">
+      <section className="signup-showcase">
+        <div className="signup-showcase-top">
+          <Link href="/" className="signup-logo">LEXIA<span>.</span></Link>
+          <Link href="/" className="signup-back">← Retour au site</Link>
+        </div>
+
+        <div className="signup-showcase-content">
+          <span className="signup-badge">ASSISTANCE JURIDIQUE EN LIGNE</span>
+          <h1>Votre dossier mérite une réponse claire.</h1>
+          <p>Créez votre espace confidentiel, transmettez vos documents et échangez directement avec notre équipe.</p>
+
+          <div className="signup-points">
+            <div><strong>01</strong><span>Dépôt simple de votre situation</span></div>
+            <div><strong>02</strong><span>Documents centralisés et sécurisés</span></div>
+            <div><strong>03</strong><span>Échanges privés avec un conseiller</span></div>
+          </div>
+        </div>
+
+        <div className="signup-trust-card">
+          <span className="signup-trust-icon">⚖</span>
+          <div>
+            <strong>Un accompagnement humain</strong>
+            <p>Et une orientation vers un avocat proche de chez vous lorsque la situation l’exige.</p>
           </div>
         </div>
       </section>
 
-      <section className="auth-panel auth-form-wrap">
-        <div className="auth-card">
-          <h2>Créer un compte</h2>
-          <p className="auth-muted">Choisissez votre profil puis complétez le formulaire.</p>
-
-          <div className="account-switch">
-            <button type="button" className={accountType === "particulier" ? "active" : ""} onClick={() => setAccountType("particulier")}>Particulier · 13 €</button>
-            <button type="button" className={accountType === "professionnel" ? "active" : ""} onClick={() => setAccountType("professionnel")}>Professionnel · 29 €</button>
+      <section className="signup-form-side">
+        <div className="signup-form-card">
+          <div className="signup-form-heading">
+            <span>BIENVENUE CHEZ LEXIA</span>
+            <h2>Créer votre compte</h2>
+            <p>Sélectionnez votre profil avant de commencer.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <label>Nom et prénom<input name="fullName" type="text" required placeholder="Valentin Thiery" /></label>
+          <div className="signup-account-types">
+            <button type="button" className={accountType === "particulier" ? "selected" : ""} onClick={() => setAccountType("particulier")}>
+              <span className="signup-type-icon">👤</span>
+              <span><strong>Particulier</strong><small>Ouverture de dossier : 13 €</small></span>
+            </button>
+            <button type="button" className={accountType === "professionnel" ? "selected" : ""} onClick={() => setAccountType("professionnel")}>
+              <span className="signup-type-icon">🏢</span>
+              <span><strong>Professionnel</strong><small>Ouverture de dossier : 29 €</small></span>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="signup-form">
+            <label>
+              <span>Nom et prénom</span>
+              <input name="fullName" type="text" required placeholder="Votre identité complète" />
+            </label>
+
             {accountType === "professionnel" && (
-              <div className="form-grid">
-                <label>Entreprise<input name="companyName" type="text" required placeholder="Nom de la société" /></label>
-                <label>SIRET<input name="siret" type="text" inputMode="numeric" required maxLength={14} placeholder="14 chiffres" /></label>
+              <div className="signup-two-columns">
+                <label>
+                  <span>Nom de l’entreprise</span>
+                  <input name="companyName" type="text" required placeholder="Raison sociale" />
+                </label>
+                <label>
+                  <span>Numéro SIRET</span>
+                  <input name="siret" type="text" inputMode="numeric" required maxLength={14} placeholder="14 chiffres" />
+                </label>
               </div>
             )}
-            <label>Adresse e-mail<input name="email" type="email" required autoComplete="email" placeholder="vous@exemple.fr" /></label>
-            <label>Mot de passe<input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="8 caractères minimum" /></label>
 
-            {error && <div className="auth-alert error">{error}</div>}
-            {message && <div className="auth-alert success">{message}</div>}
+            <label>
+              <span>Adresse e-mail</span>
+              <input name="email" type="email" required autoComplete="email" placeholder="nom@exemple.fr" />
+            </label>
 
-            <button className="btn btn-primary auth-submit" disabled={loading}>{loading ? "Création..." : "Créer mon compte"}</button>
+            <label>
+              <span>Mot de passe</span>
+              <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="8 caractères minimum" />
+            </label>
+
+            <label className="signup-consent">
+              <input type="checkbox" required />
+              <span>J’accepte les conditions d’utilisation et la politique de confidentialité.</span>
+            </label>
+
+            {error && <div className="signup-alert signup-error">{error}</div>}
+            {message && <div className="signup-alert signup-success">{message}</div>}
+
+            <button className="signup-submit" disabled={loading}>
+              {loading ? "Création du compte..." : "Créer mon espace sécurisé"}
+            </button>
           </form>
 
-          <p className="auth-bottom">Déjà inscrit ? <Link href="/connexion">Se connecter</Link></p>
+          <div className="signup-login-link">
+            Déjà inscrit ? <Link href="/connexion">Se connecter</Link>
+          </div>
+
+          <div className="signup-security-note">🔒 Vos informations sont protégées et confidentielles.</div>
         </div>
       </section>
     </main>
