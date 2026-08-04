@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
 import "./connexion.css";
 
@@ -11,6 +11,38 @@ export default function ConnexionPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function continueExistingAdminSession() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("maintenance") !== "1") return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!active || !user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!active || profile?.role !== "admin") return;
+
+      const requestedRedirect = params.get("redirect");
+      const destination = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+        ? requestedRedirect
+        : "/administration";
+
+      window.location.replace(destination);
+    }
+
+    void continueExistingAdminSession();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
