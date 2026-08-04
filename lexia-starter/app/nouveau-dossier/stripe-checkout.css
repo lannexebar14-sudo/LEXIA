@@ -1,0 +1,26 @@
+.case-checkout-notice,
+.case-checkout-error {
+  margin-top: 18px;
+  padding: 15px 17px;
+  border-radius: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.case-checkout-notice {
+  color: #6d5520;
+  border: 1px solid rgba(188, 148, 62, 0.36);
+  background: #fff7df;
+}
+
+.case-checkout-error {
+  color: #8b1f2d;
+  border: 1px solid rgba(179, 43, 61, 0.28);
+  background: #fff0f2;
+}
+
+.case-navigation .case-next:disabled,
+.case-navigation .case-back:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
