@@ -9,9 +9,9 @@ type Phase = "loading" | "waiting" | "paid" | "failed" | "error";
 
 type CaseStatus = {
   reference: string;
-  total_amount_cents: number;
+  totalAmount: number;
   status: string;
-  payment_status: string;
+  paymentStatus: string;
 };
 
 const DRAFT_KEY = "lexia_case_checkout_draft_v1";
@@ -31,6 +31,7 @@ export default function PaiementSuccessPage() {
     async function checkPayment() {
       const params = new URLSearchParams(window.location.search);
       const caseId = params.get("case") || window.localStorage.getItem(CASE_KEY);
+      const sessionId = params.get("session_id");
 
       if (!caseId) {
         if (active) {
@@ -49,14 +50,27 @@ export default function PaiementSuccessPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      const caseRequest = supabase
         .from("legal_cases")
-        .select("reference,total_amount_cents,status,payment_status")
+        .select("reference,total_amount,status")
         .eq("id", caseId)
         .eq("user_id", user.id)
         .single();
 
-      if (error || !data) {
+      let paymentRequest = supabase
+        .from("payment_transactions")
+        .select("status,amount,stripe_checkout_session_id")
+        .eq("case_id", caseId)
+        .eq("user_id", user.id);
+
+      if (sessionId) paymentRequest = paymentRequest.eq("stripe_checkout_session_id", sessionId);
+
+      const [{ data: legalCase, error: caseError }, { data: payments, error: paymentError }] = await Promise.all([
+        caseRequest,
+        paymentRequest.order("created_at", { ascending: false }).limit(1),
+      ]);
+
+      if (caseError || !legalCase) {
         if (active) {
           setPhase("error");
           setMessage("Le dossier n’a pas pu être retrouvé. Aucun paiement ne sera considéré comme validé sans confirmation Stripe.");
@@ -65,21 +79,30 @@ export default function PaiementSuccessPage() {
       }
 
       if (!active) return;
-      const current = data as CaseStatus;
+      const payment = !paymentError && payments?.length ? payments[0] : null;
+      const paymentStatus = payment?.status || "pending";
+      const current: CaseStatus = {
+        reference: legalCase.reference,
+        totalAmount: payment?.amount ?? legalCase.total_amount,
+        status: legalCase.status,
+        paymentStatus,
+      };
       setCaseData(current);
 
-      if (current.payment_status === "paid" || current.status === "paid") {
+      if (paymentStatus === "paid" || paymentStatus === "partially_refunded" || legalCase.status === "paid") {
         window.localStorage.removeItem(DRAFT_KEY);
         window.localStorage.removeItem(CASE_KEY);
         setPhase("paid");
-        setMessage("Votre paiement a été confirmé. Le dossier est transmis à l’équipe Lexia.");
+        setMessage(paymentStatus === "partially_refunded"
+          ? "Votre paiement a été confirmé puis partiellement remboursé. Consultez votre espace pour le détail."
+          : "Votre paiement a été confirmé. Le dossier est transmis à l’équipe Lexia.");
         if (interval) window.clearInterval(interval);
         return;
       }
 
-      if (["failed", "expired", "refunded"].includes(current.payment_status)) {
+      if (["failed", "expired", "refunded"].includes(paymentStatus)) {
         setPhase("failed");
-        setMessage(current.payment_status === "refunded"
+        setMessage(paymentStatus === "refunded"
           ? "Le paiement a été remboursé."
           : "Le paiement n’a pas été confirmé. Vous pouvez reprendre le règlement depuis votre espace.");
         if (interval) window.clearInterval(interval);
@@ -102,7 +125,7 @@ export default function PaiementSuccessPage() {
     };
   }, [supabase]);
 
-  const amount = caseData ? `${(caseData.total_amount_cents / 100).toFixed(2).replace(".", ",")} €` : "—";
+  const amount = caseData ? `${(caseData.totalAmount / 100).toFixed(2).replace(".", ",")} €` : "—";
   const icon = phase === "paid" ? "✓" : phase === "failed" || phase === "error" ? "!" : "…";
   const title = phase === "paid"
     ? "Paiement confirmé"
