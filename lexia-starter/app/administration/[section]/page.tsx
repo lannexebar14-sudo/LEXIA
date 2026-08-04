@@ -9,6 +9,23 @@ import "./section.css";
 
 type SectionConfig = { title: string; eyebrow: string; description: string; action: string; icon: string };
 type Profile = { id: string; full_name: string | null; account_type: string | null; company_name: string | null; role: string | null };
+type Lawyer = {
+  cnbf_code: string;
+  civility: string | null;
+  last_name: string;
+  first_name: string;
+  bar_name: string;
+  firm_name: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  postal_code: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  specialty_1: string | null;
+  specialty_2: string | null;
+  specialty_3: string | null;
+};
 
 type SettingsState = {
   platformName: string;
@@ -74,7 +91,7 @@ const configs: Record<string, SectionConfig> = {
   clients: { title: "Clients", eyebrow: "UTILISATEURS", description: "Retrouvez les particuliers et professionnels inscrits.", action: "Ajouter un client", icon: "♙" },
   juristes: { title: "Juristes", eyebrow: "ÉQUIPE", description: "Gérez les accès, spécialités et dossiers attribués.", action: "Ajouter un juriste", icon: "⚖" },
   prestations: { title: "Prestations", eyebrow: "OFFRES PAYANTES", description: "Créez et suivez les propositions complémentaires.", action: "Créer une prestation", icon: "€" },
-  avocats: { title: "Avocats partenaires", eyebrow: "RÉSEAU PARTENAIRE", description: "Référencez les avocats selon leur barreau et leurs spécialités.", action: "Ajouter un avocat", icon: "⌖" },
+  avocats: { title: "Avocats partenaires", eyebrow: "ANNUAIRE NATIONAL", description: "Recherchez un avocat par code postal et spécialité.", action: "Rechercher", icon: "⌖" },
   parametres: { title: "Paramètres", eyebrow: "CONFIGURATION", description: "Configurez le fonctionnement complet de la plateforme.", action: "Enregistrer", icon: "⚙" },
 };
 
@@ -89,6 +106,11 @@ export default function AdminSectionPage() {
   const [notice, setNotice] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [lawyers, setLawyers] = useState<Lawyer[]>([]);
+  const [lawyerPostalCode, setLawyerPostalCode] = useState("");
+  const [lawyerSpecialty, setLawyerSpecialty] = useState("");
+  const [lawyerSearching, setLawyerSearching] = useState(false);
+  const [lawyerSearchStarted, setLawyerSearchStarted] = useState(false);
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
 
   useEffect(() => {
@@ -156,6 +178,44 @@ export default function AdminSectionPage() {
     router.replace("/connexion");
   }
 
+  async function searchLawyers(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const postalCode = lawyerPostalCode.trim();
+    const specialty = lawyerSpecialty.trim();
+
+    if (!postalCode && !specialty) {
+      setNotice("Renseignez un code postal ou une spécialité.");
+      setLawyers([]);
+      setLawyerSearchStarted(false);
+      return;
+    }
+
+    setLawyerSearching(true);
+    setLawyerSearchStarted(true);
+    setNotice("");
+
+    let request = supabase
+      .from("lawyers")
+      .select("cnbf_code,civility,last_name,first_name,bar_name,firm_name,address_line_1,address_line_2,postal_code,city,phone,email,specialty_1,specialty_2,specialty_3")
+      .order("last_name", { ascending: true })
+      .limit(50);
+
+    if (postalCode) request = request.eq("postal_code", postalCode);
+    if (specialty) {
+      const safeSpecialty = specialty.replace(/[,%()]/g, " ").trim();
+      request = request.or(`specialty_1.ilike.%${safeSpecialty}%,specialty_2.ilike.%${safeSpecialty}%,specialty_3.ilike.%${safeSpecialty}%`);
+    }
+
+    const { data, error } = await request;
+    if (error) {
+      setLawyers([]);
+      setNotice("La recherche n’a pas pu aboutir. Réessayez dans quelques instants.");
+    } else {
+      setLawyers((data as Lawyer[]) || []);
+    }
+    setLawyerSearching(false);
+  }
+
   if (loading) return <main className="admin-loading">Vérification de vos accès…</main>;
 
   return (
@@ -179,7 +239,7 @@ export default function AdminSectionPage() {
       <section className="admin-main">
         <header className="section-header">
           <div><small>{config.eyebrow}</small><h1>{config.icon} {config.title}</h1><p>{config.description}</p></div>
-          {section !== "parametres" && <button onClick={() => setShowForm(true)}>＋ {config.action}</button>}
+          {section !== "parametres" && section !== "avocats" && <button onClick={() => setShowForm(true)}>＋ {config.action}</button>}
         </header>
 
         {notice && <div className="section-notice">{notice}</div>}
@@ -238,6 +298,31 @@ export default function AdminSectionPage() {
 
             <div className="settings-save-bar"><span>Les paramètres sensibles devront ensuite être synchronisés avec Supabase.</span><button type="submit">Enregistrer tous les paramètres</button></div>
           </form>
+        ) : section === "avocats" ? (
+          <>
+            <form className="admin-card lawyer-search" onSubmit={searchLawyers}>
+              <div className="lawyer-search-intro">
+                <small>RECHERCHE RÉSERVÉE À L’ADMINISTRATION</small>
+                <h2>Trouver rapidement un avocat</h2>
+                <p>Utilisez le code postal, la spécialité, ou les deux critères ensemble.</p>
+              </div>
+              <label>
+                <span>Code postal</span>
+                <input inputMode="numeric" maxLength={5} pattern="[0-9]{5}" value={lawyerPostalCode} onChange={(e) => setLawyerPostalCode(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Ex. 14000" />
+              </label>
+              <label>
+                <span>Spécialité</span>
+                <input value={lawyerSpecialty} onChange={(e) => setLawyerSpecialty(e.target.value)} placeholder="Ex. droit du travail" />
+              </label>
+              <button type="submit" disabled={lawyerSearching}>{lawyerSearching ? "Recherche…" : "Rechercher"}</button>
+              <p className="lawyer-source">Données professionnelles issues de l’annuaire national du Conseil national des barreaux · mise à jour juillet 2026.</p>
+            </form>
+
+            <section className="admin-card section-content lawyer-results-card">
+              <div className="admin-card-head"><div><small>RÉSULTATS</small><h2>Avocats trouvés</h2></div><span className="count-pill">{lawyers.length}</span></div>
+              {lawyerSearching ? <div className="section-empty"><div>⌕</div><b>Recherche en cours…</b></div> : lawyers.length > 0 ? <LawyerList lawyers={lawyers} /> : <div className="section-empty"><div>⌖</div><b>{lawyerSearchStarted ? "Aucun avocat ne correspond à ces critères." : "Saisissez un code postal ou une spécialité."}</b><p>Les 50 premiers résultats correspondants seront affichés ici.</p></div>}
+            </section>
+          </>
         ) : (
           <>
             <section className="admin-card section-toolbar">
@@ -290,7 +375,7 @@ export default function AdminSectionPage() {
         </div>
       )}
 
-      {showForm && section !== "dossiers" && section !== "parametres" && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="admin-modal" onSubmit={submitGeneric} onClick={(e) => e.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button><small>{config.eyebrow}</small><h2>{config.action}</h2><label>Titre ou nom<input required placeholder="Saisissez une information" /></label><label>Description<textarea rows={5} placeholder="Ajoutez les détails utiles" /></label><div className="modal-actions"><button type="button" onClick={() => setShowForm(false)}>Annuler</button><button type="submit">Enregistrer</button></div></form></div>}
+      {showForm && section !== "dossiers" && section !== "parametres" && section !== "avocats" && <div className="modal-backdrop" onClick={() => setShowForm(false)}><form className="admin-modal" onSubmit={submitGeneric} onClick={(e) => e.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button><small>{config.eyebrow}</small><h2>{config.action}</h2><label>Titre ou nom<input required placeholder="Saisissez une information" /></label><label>Description<textarea rows={5} placeholder="Ajoutez les détails utiles" /></label><div className="modal-actions"><button type="button" onClick={() => setShowForm(false)}>Annuler</button><button type="submit">Enregistrer</button></div></form></div>}
     </main>
   );
 }
@@ -309,4 +394,24 @@ function SettingsCard({ title, description, children }: { title: string; descrip
 
 function ProfileList({ profiles }: { profiles: Profile[] }) {
   return <div className="profile-list">{profiles.map((profile) => <article key={profile.id}><div className="profile-avatar">{(profile.full_name || profile.company_name || "C").slice(0, 1).toUpperCase()}</div><div><b>{profile.full_name || profile.company_name || "Utilisateur"}</b><span>{profile.account_type || profile.role || "client"}</span></div><button>Ouvrir</button></article>)}</div>;
+}
+
+function LawyerList({ lawyers }: { lawyers: Lawyer[] }) {
+  return <div className="lawyer-list">{lawyers.map((lawyer) => {
+    const specialties = [lawyer.specialty_1, lawyer.specialty_2, lawyer.specialty_3].filter(Boolean) as string[];
+    const address = [lawyer.address_line_1, lawyer.address_line_2, lawyer.postal_code, lawyer.city].filter(Boolean).join(" · ");
+    return <article key={lawyer.cnbf_code} className="lawyer-card">
+      <div className="lawyer-avatar">{lawyer.first_name.slice(0, 1)}{lawyer.last_name.slice(0, 1)}</div>
+      <div className="lawyer-details">
+        <div className="lawyer-title"><div><h3>{lawyer.civility ? `${lawyer.civility} ` : ""}{lawyer.first_name} {lawyer.last_name}</h3><span>Barreau de {lawyer.bar_name}</span></div><b>{lawyer.postal_code || "—"}</b></div>
+        {lawyer.firm_name && <p><strong>Cabinet :</strong> {lawyer.firm_name}</p>}
+        {address && <p><strong>Adresse :</strong> {address}</p>}
+        {specialties.length > 0 && <div className="lawyer-specialties">{specialties.map((specialty) => <span key={specialty}>{specialty}</span>)}</div>}
+        <div className="lawyer-contact">
+          {lawyer.phone && <a href={`tel:${lawyer.phone}`}>☎ {lawyer.phone}</a>}
+          {lawyer.email && <a href={`mailto:${lawyer.email}`}>✉ {lawyer.email}</a>}
+        </div>
+      </div>
+    </article>;
+  })}</div>;
 }
