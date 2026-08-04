@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
+import NotificationTestButton from "./NotificationTestButton";
 import "./admin.css";
 import "../mobile-app.css";
 
 export default function AdministrationPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +24,10 @@ export default function AdministrationPage() {
     verifyAdmin();
   }, [router, supabase]);
 
-  async function logout() { await supabase.auth.signOut(); router.replace("/connexion"); }
+  async function logout() {
+    await supabase.auth.signOut();
+    router.replace("/connexion");
+  }
 
   if (loading) return <main className="admin-loading">Vérification de vos accès…</main>;
 
@@ -47,8 +51,18 @@ export default function AdministrationPage() {
 
       <section className="admin-main">
         <header className="admin-topbar">
-          <div><small>BACK-OFFICE LEXIA</small><h1>Tableau de bord administrateur</h1><p>Suivez les demandes, les clients et l’activité de la plateforme.</p></div>
-          <div className="admin-actions"><Link href="/administration/dossiers" style={{background:'#0c2340',color:'#fff',padding:'13px 16px',borderRadius:12,fontWeight:800}}>＋ Nouveau dossier</Link><span>VT</span></div>
+          <div>
+            <small>BACK-OFFICE LEXIA</small>
+            <h1>Tableau de bord administrateur</h1>
+            <p>Suivez les demandes, les clients et l’activité de la plateforme.</p>
+          </div>
+          <div className="admin-actions">
+            <div className="admin-header-buttons">
+              <NotificationTestButton />
+              <Link className="admin-new-dossier" href="/administration/dossiers">＋ Nouveau dossier</Link>
+            </div>
+            <span>VT</span>
+          </div>
         </header>
 
         <div className="admin-stats">
