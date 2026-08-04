@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./mobile-polish.css";
 import "./administration/mobile-header.css";
+import "./nouveau-dossier/stripe-checkout.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
