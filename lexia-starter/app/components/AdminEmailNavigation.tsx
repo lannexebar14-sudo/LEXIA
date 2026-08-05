@@ -3,6 +3,19 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+const ADMIN_ROUTES = [
+  "/administration",
+  "/administration/dossiers",
+  "/administration/messages",
+  "/administration/clients",
+  "/administration/juristes",
+  "/administration/prestations",
+  "/administration/avocats",
+  "/administration/emails",
+  "/administration/parametres",
+  "/administration/utilisateurs",
+] as const;
+
 export default function AdminEmailNavigation() {
   const pathname = usePathname();
   const router = useRouter();
@@ -12,6 +25,8 @@ export default function AdminEmailNavigation() {
 
     let stopped = false;
     let attempts = 0;
+
+    ADMIN_ROUTES.forEach((route) => router.prefetch(route));
 
     function installLinks() {
       const navs = document.querySelectorAll<HTMLElement>(".admin-sidebar nav");
