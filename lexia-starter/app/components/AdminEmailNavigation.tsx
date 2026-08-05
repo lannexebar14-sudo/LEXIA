@@ -1,43 +1,74 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function AdminEmailNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (!pathname.startsWith("/administration")) return;
 
-    function installLink() {
-      const nav = document.querySelector<HTMLElement>(".admin-sidebar nav");
-      if (!nav) return;
+    let stopped = false;
+    let attempts = 0;
 
-      let emailLink = nav.querySelector<HTMLAnchorElement>("a[data-lexia-email-link]");
-      if (!emailLink) {
-        emailLink = document.createElement("a");
-        emailLink.href = "/administration/emails";
-        emailLink.textContent = "＠ E-mails";
+    function installLinks() {
+      const navs = document.querySelectorAll<HTMLElement>(".admin-sidebar nav");
+      if (navs.length === 0) return false;
+
+      navs.forEach((nav) => {
+        let emailLink = nav.querySelector<HTMLAnchorElement>('a[href="/administration/emails"]');
+
+        if (!emailLink) {
+          emailLink = document.createElement("a");
+          emailLink.href = "/administration/emails";
+          emailLink.textContent = "＠ E-mails";
+          emailLink.dataset.lexiaEmailLink = "true";
+
+          const settingsLink = nav.querySelector<HTMLAnchorElement>('a[href="/administration/parametres"]');
+          if (settingsLink) nav.insertBefore(emailLink, settingsLink);
+          else nav.appendChild(emailLink);
+        }
+
         emailLink.dataset.lexiaEmailLink = "true";
+        emailLink.classList.toggle("active", pathname === "/administration/emails");
+      });
 
-        const settingsLink = Array.from(nav.querySelectorAll<HTMLAnchorElement>("a"))
-          .find((link) => link.getAttribute("href") === "/administration/parametres");
-        if (settingsLink) nav.insertBefore(emailLink, settingsLink);
-        else nav.appendChild(emailLink);
-      }
-
-      emailLink.classList.toggle("active", pathname === "/administration/emails");
-      if (pathname !== "/administration/emails") {
-        const currentActive = nav.querySelector<HTMLAnchorElement>("a.active:not([data-lexia-email-link])");
-        if (currentActive) emailLink.classList.remove("active");
-      }
+      return true;
     }
 
-    installLink();
-    const observer = new MutationObserver(installLink);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [pathname]);
+    function handleNavigation(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const link = target.closest<HTMLAnchorElement>(".admin-sidebar nav a");
+      if (!link) return;
+
+      const href = link.getAttribute("href");
+      if (!href?.startsWith("/administration")) return;
+
+      event.preventDefault();
+      if (href === pathname) return;
+      router.push(href);
+    }
+
+    installLinks();
+    const retryTimer = window.setInterval(() => {
+      attempts += 1;
+      const installed = installLinks();
+      if (stopped || installed || attempts >= 100) window.clearInterval(retryTimer);
+    }, 120);
+
+    document.addEventListener("click", handleNavigation, true);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(retryTimer);
+      document.removeEventListener("click", handleNavigation, true);
+    };
+  }, [pathname, router]);
 
   return null;
 }
