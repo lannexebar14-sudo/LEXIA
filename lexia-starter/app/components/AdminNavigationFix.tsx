@@ -25,7 +25,7 @@ export default function AdminNavigationFix() {
     }
 
     function applyMobileLogoutStyle(button: HTMLButtonElement) {
-      button.textContent = "↪ Déconnexion";
+      button.textContent = "Déconnexion";
       button.style.margin = "0";
       button.style.flex = "0 0 auto";
       button.style.width = "auto";
@@ -37,15 +37,16 @@ export default function AdminNavigationFix() {
       button.style.justifyContent = "center";
       button.style.position = "static";
       button.style.borderRadius = "12px";
-      button.style.border = "1px solid rgba(212, 182, 110, .48)";
-      button.style.background = "rgba(212, 182, 110, .13)";
-      button.style.color = "#f3d98f";
+      button.style.border = "1px solid #d4b66e";
+      button.style.background = "#d4b66e";
+      button.style.color = "#10243d";
       button.style.fontSize = "12px";
       button.style.fontWeight = "900";
       button.style.lineHeight = "1";
       button.style.whiteSpace = "nowrap";
       button.style.order = "999";
       button.style.cursor = "pointer";
+      button.style.boxShadow = "0 6px 16px rgba(212, 182, 110, .22)";
     }
 
     function restoreDesktopLogoutStyle(button: HTMLButtonElement) {
