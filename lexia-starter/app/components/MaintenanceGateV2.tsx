@@ -8,7 +8,7 @@ const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token_v2";
 const OLD_ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
 const STATUS_CACHE_KEY = "lexia_maintenance_last_state_v1";
 
-type GateState = "loading" | "open" | "maintenance";
+type GateState = "open" | "maintenance";
 type MaintenanceAccessResult = {
   valid?: boolean;
   token?: string;
@@ -27,7 +27,7 @@ function withTimeout<T>(task: PromiseLike<T>, delay = 3500): Promise<T> {
 
 export default function MaintenanceGateV2({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
-  const [state, setState] = useState<GateState>("loading");
+  const [state, setState] = useState<GateState>("open");
   const [code, setCode] = useState("");
   const [checkingCode, setCheckingCode] = useState(false);
   const [error, setError] = useState("");
@@ -36,12 +36,6 @@ export default function MaintenanceGateV2({ children }: { children: ReactNode })
     let active = true;
     let checkInProgress = false;
     window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
-
-    const cachedState = window.localStorage.getItem(STATUS_CACHE_KEY);
-    const emergencyTimer = window.setTimeout(() => {
-      if (!active) return;
-      setState(cachedState === "maintenance" ? "maintenance" : "open");
-    }, 3200);
 
     async function hasTemporaryAccess() {
       const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -95,8 +89,9 @@ export default function MaintenanceGateV2({ children }: { children: ReactNode })
         if (statusError || typeof data?.maintenance_mode !== "boolean") throw new Error("unavailable");
         await applyMaintenanceState(data.maintenance_mode);
       } catch {
-        if (active && state === "loading") {
-          setState(cachedState === "maintenance" ? "maintenance" : "open");
+        // En cas de réseau lent, Lexia reste accessible au lieu de bloquer l’écran.
+        if (active && window.localStorage.getItem(STATUS_CACHE_KEY) === "maintenance") {
+          setState("maintenance");
         }
       } finally {
         checkInProgress = false;
@@ -136,7 +131,6 @@ export default function MaintenanceGateV2({ children }: { children: ReactNode })
 
     return () => {
       active = false;
-      window.clearTimeout(emergencyTimer);
       window.clearInterval(interval);
       window.removeEventListener("focus", loadStatus);
       window.removeEventListener("online", loadStatus);
@@ -144,7 +138,7 @@ export default function MaintenanceGateV2({ children }: { children: ReactNode })
       authStateListener.subscription.unsubscribe();
       void supabase.removeChannel(channel);
     };
-  }, [supabase, state]);
+  }, [supabase]);
 
   async function unlockAdministration(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,16 +168,6 @@ export default function MaintenanceGateV2({ children }: { children: ReactNode })
       setCode("");
       setCheckingCode(false);
     }
-  }
-
-  if (state === "loading") {
-    return (
-      <main className={styles.loading}>
-        <div className={styles.loadingLogo}>LEXIA<span>.</span></div>
-        <div className={styles.loadingBar}><i /></div>
-        <small>Ouverture sécurisée de la plateforme…</small>
-      </main>
-    );
   }
 
   if (state === "open") return <>{children}</>;
