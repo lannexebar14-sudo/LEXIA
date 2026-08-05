@@ -1,0 +1,256 @@
+"use client";
+
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { createClient } from "../../lib/supabase/client";
+import styles from "./MaintenanceGate.module.css";
+
+const ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token_v2";
+const OLD_ACCESS_TOKEN_KEY = "lexia_maintenance_admin_token";
+const STATUS_CACHE_KEY = "lexia_maintenance_last_state_v1";
+
+type GateState = "loading" | "open" | "maintenance";
+type MaintenanceAccessResult = {
+  valid?: boolean;
+  token?: string;
+  expiresAt?: number;
+  error?: string;
+};
+
+function withTimeout<T>(task: PromiseLike<T>, delay = 3500): Promise<T> {
+  return Promise.race([
+    Promise.resolve(task),
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error("timeout")), delay);
+    }),
+  ]);
+}
+
+export default function MaintenanceGateV2({ children }: { children: ReactNode }) {
+  const supabase = useMemo(() => createClient(), []);
+  const [state, setState] = useState<GateState>("loading");
+  const [code, setCode] = useState("");
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let checkInProgress = false;
+    window.localStorage.removeItem(OLD_ACCESS_TOKEN_KEY);
+
+    const cachedState = window.localStorage.getItem(STATUS_CACHE_KEY);
+    const emergencyTimer = window.setTimeout(() => {
+      if (!active) return;
+      setState(cachedState === "maintenance" ? "maintenance" : "open");
+    }, 3200);
+
+    async function hasTemporaryAccess() {
+      const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+      if (!token) return false;
+
+      try {
+        const { data, error: verifyError } = await withTimeout(
+          supabase.functions.invoke<MaintenanceAccessResult>("maintenance-access", {
+            body: { action: "verify", token },
+          }),
+          4000,
+        );
+
+        if (verifyError || !data?.valid) throw new Error("invalid");
+        return true;
+      } catch {
+        window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+        return false;
+      }
+    }
+
+    async function applyMaintenanceState(maintenanceMode: boolean) {
+      if (!active) return;
+      window.localStorage.setItem(STATUS_CACHE_KEY, maintenanceMode ? "maintenance" : "open");
+
+      if (!maintenanceMode) {
+        window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+        setState("open");
+        return;
+      }
+
+      const allowed = await hasTemporaryAccess();
+      if (active) setState(allowed ? "open" : "maintenance");
+    }
+
+    async function loadStatus() {
+      if (checkInProgress) return;
+      checkInProgress = true;
+
+      try {
+        const result = await withTimeout(
+          supabase
+            .from("platform_settings")
+            .select("maintenance_mode")
+            .eq("id", "main")
+            .maybeSingle(),
+          2800,
+        );
+
+        const { data, error: statusError } = result;
+        if (statusError || typeof data?.maintenance_mode !== "boolean") throw new Error("unavailable");
+        await applyMaintenanceState(data.maintenance_mode);
+      } catch {
+        if (active && state === "loading") {
+          setState(cachedState === "maintenance" ? "maintenance" : "open");
+        }
+      } finally {
+        checkInProgress = false;
+      }
+    }
+
+    function checkWhenVisible() {
+      if (document.visibilityState === "visible") void loadStatus();
+    }
+
+    void loadStatus();
+    const interval = window.setInterval(() => void loadStatus(), 15000);
+    window.addEventListener("focus", loadStatus);
+    window.addEventListener("online", loadStatus);
+    document.addEventListener("visibilitychange", checkWhenVisible);
+
+    const { data: authStateListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+      if (window.localStorage.getItem(STATUS_CACHE_KEY) === "maintenance") {
+        setState("maintenance");
+        if (window.location.pathname !== "/") window.location.replace("/");
+      }
+    });
+
+    const channel = supabase
+      .channel("lexia-platform-maintenance-v2")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "platform_settings", filter: "id=eq.main" },
+        (payload) => {
+          const maintenanceMode = Boolean((payload.new as { maintenance_mode?: boolean }).maintenance_mode);
+          void applyMaintenanceState(maintenanceMode);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      window.clearTimeout(emergencyTimer);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", loadStatus);
+      window.removeEventListener("online", loadStatus);
+      document.removeEventListener("visibilitychange", checkWhenVisible);
+      authStateListener.subscription.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, state]);
+
+  async function unlockAdministration(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (checkingCode || code.length !== 6) return;
+
+    setCheckingCode(true);
+    setError("");
+
+    try {
+      const { data, error: accessError } = await withTimeout(
+        supabase.functions.invoke<MaintenanceAccessResult>("maintenance-access", {
+          body: { action: "unlock", code },
+        }),
+        6000,
+      );
+
+      if (accessError) throw new Error("Vérification impossible pour le moment.");
+      if (!data?.valid || !data.token) throw new Error(data?.error || "Code administrateur incorrect.");
+
+      window.localStorage.setItem(ACCESS_TOKEN_KEY, data.token);
+      setState("open");
+      window.location.replace("/connexion?redirect=%2Fadministration&maintenance=1");
+    } catch (unlockError) {
+      setError(unlockError instanceof Error && unlockError.message !== "timeout"
+        ? unlockError.message
+        : "La vérification a pris trop de temps. Réessayez.");
+      setCode("");
+      setCheckingCode(false);
+    }
+  }
+
+  if (state === "loading") {
+    return (
+      <main className={styles.loading}>
+        <div className={styles.loadingLogo}>LEXIA<span>.</span></div>
+        <div className={styles.loadingBar}><i /></div>
+        <small>Ouverture sécurisée de la plateforme…</small>
+      </main>
+    );
+  }
+
+  if (state === "open") return <>{children}</>;
+
+  return (
+    <main className={styles.page}>
+      <div className={styles.glowOne} />
+      <div className={styles.glowTwo} />
+      <div className={styles.pattern} aria-hidden="true" />
+
+      <section className={styles.content}>
+        <div className={styles.brand}>LEXIA<span>.</span></div>
+        <div className={styles.statusPill}><i /> Maintenance en cours</div>
+
+        <div className={styles.illustration} aria-hidden="true">
+          <div className={styles.outerRing} />
+          <div className={styles.innerRing} />
+          <div className={styles.tool}>⚙</div>
+          <span className={styles.sparkOne}>✦</span>
+          <span className={styles.sparkTwo}>✦</span>
+        </div>
+
+        <div className={styles.copy}>
+          <small>AMÉLIORATION DE NOS SERVICES</small>
+          <h1>SITE EN<br /><span>MAINTENANCE</span></h1>
+          <p>Revenez dans quelques minutes.</p>
+          <div className={styles.separator}><i /><span>Nous préparons une meilleure expérience Lexia</span><i /></div>
+        </div>
+
+        <form className={styles.adminCard} onSubmit={unlockAdministration}>
+          <div className={styles.adminIcon}>⌘</div>
+          <div className={styles.adminCopy}>
+            <small>ACCÈS RÉSERVÉ</small>
+            <h2>Administration</h2>
+            <p>Saisissez le code administrateur pour accéder au back-office pendant la maintenance.</p>
+          </div>
+
+          <label className={styles.codeField}>
+            <span>Code administrateur</span>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(event) => {
+                setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                setError("");
+              }}
+              placeholder="••••••"
+              aria-invalid={Boolean(error)}
+              autoFocus
+            />
+          </label>
+
+          {error && <div className={styles.error} role="alert">! {error}</div>}
+
+          <button type="submit" disabled={checkingCode || code.length !== 6} aria-busy={checkingCode}>
+            {checkingCode ? "Ouverture…" : "Accéder à l’administration"}
+            {!checkingCode && <span>→</span>}
+          </button>
+
+          <small className={styles.security}>Accès sécurisé et temporaire · Connexion administrateur requise</small>
+        </form>
+
+        <footer>© 2026 LEXIA · Assistance juridique sécurisée</footer>
+      </section>
+    </main>
+  );
+}
