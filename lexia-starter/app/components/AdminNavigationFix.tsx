@@ -1,10 +1,17 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function AdminNavigationFix() {
+  const pathname = usePathname();
+  const router = useRouter();
+
   useEffect(() => {
+    if (!pathname.startsWith("/administration")) return;
+
     const mobileQuery = window.matchMedia("(max-width: 1050px)");
+    let attempts = 0;
 
     function handleAdminLogoClick(event: MouseEvent) {
       const target = event.target;
@@ -14,13 +21,13 @@ export default function AdminNavigationFix() {
       if (!logo) return;
 
       event.preventDefault();
-      window.location.assign("/administration");
+      router.push("/administration");
     }
 
     function arrangeSidebar(sidebar: Element) {
       const nav = sidebar.querySelector(":scope > nav");
       const logoutButton = sidebar.querySelector(":scope > button, :scope > nav > button.admin-logout-button");
-      if (!(nav instanceof HTMLElement) || !(logoutButton instanceof HTMLButtonElement)) return;
+      if (!(nav instanceof HTMLElement) || !(logoutButton instanceof HTMLButtonElement)) return false;
 
       logoutButton.textContent = "Déconnexion";
       logoutButton.classList.add("admin-logout-button");
@@ -31,25 +38,40 @@ export default function AdminNavigationFix() {
       } else if (logoutButton.parentElement === nav) {
         sidebar.appendChild(logoutButton);
       }
+
+      return true;
     }
 
     function arrangeAllSidebars() {
-      document.querySelectorAll(".admin-app > .admin-sidebar").forEach(arrangeSidebar);
+      const sidebars = document.querySelectorAll(".admin-app > .admin-sidebar");
+      let arranged = false;
+      sidebars.forEach((sidebar) => {
+        arranged = arrangeSidebar(sidebar) || arranged;
+      });
+      return arranged;
+    }
+
+    function handleViewportChange() {
+      arrangeAllSidebars();
     }
 
     document.addEventListener("click", handleAdminLogoClick, true);
     arrangeAllSidebars();
 
-    const observer = new MutationObserver(arrangeAllSidebars);
-    observer.observe(document.body, { childList: true, subtree: true });
-    mobileQuery.addEventListener("change", arrangeAllSidebars);
+    const retryTimer = window.setInterval(() => {
+      attempts += 1;
+      const arranged = arrangeAllSidebars();
+      if (arranged || attempts >= 100) window.clearInterval(retryTimer);
+    }, 120);
+
+    mobileQuery.addEventListener("change", handleViewportChange);
 
     return () => {
+      window.clearInterval(retryTimer);
       document.removeEventListener("click", handleAdminLogoClick, true);
-      mobileQuery.removeEventListener("change", arrangeAllSidebars);
-      observer.disconnect();
+      mobileQuery.removeEventListener("change", handleViewportChange);
     };
-  }, []);
+  }, [pathname, router]);
 
   return null;
 }
