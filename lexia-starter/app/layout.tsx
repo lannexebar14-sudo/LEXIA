@@ -9,9 +9,10 @@ import "./nouveau-dossier/mobile-header-fix.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
-import MaintenanceGate from "./components/MaintenanceGate";
+import MaintenanceGateV2 from "./components/MaintenanceGateV2";
 import AdminNavigationFix from "./components/AdminNavigationFix";
 import AdminEmailNavigation from "./components/AdminEmailNavigation";
+import AccessTimeoutRecovery from "./components/AccessTimeoutRecovery";
 import ClientCaseConversationMount from "./components/ClientCaseConversationMount";
 
 export const metadata: Metadata = {
@@ -41,15 +42,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr">
       <body>
-        <MaintenanceGate>
+        <MaintenanceGateV2>
           {children}
+          <AccessTimeoutRecovery />
           <AdminNavigationFix />
           <AdminEmailNavigation />
           <ClientCaseConversationMount />
           <MobilePlatformBadge />
           <PwaExperience />
           <LiveSupport />
-        </MaintenanceGate>
+        </MaintenanceGateV2>
       </body>
     </html>
   );
