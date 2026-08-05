@@ -8,7 +8,7 @@ import { AppRole, isAppRole } from "../../lib/roles";
 function destinationForRole(role: AppRole) {
   if (role === "admin") return "/administration";
   if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
-  if (role === "developpeur") return "/administration/utilisateurs";
+  if (role === "developpeur") return "/administration/developpement";
   return null;
 }
 
