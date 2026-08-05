@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
+import AdminCaseConversation from "./AdminCaseConversation";
 import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
 import "./dossiers.css";
+import "./conversation.css";
 
 type AdminCase = {
   id: string;
@@ -57,6 +59,8 @@ function formatSize(bytes: number) {
 
 export default function AdminCasesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedCaseId = searchParams.get("dossier");
   const supabase = useMemo(() => createClient(), []);
   const [cases, setCases] = useState<AdminCase[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ClientProfile>>({});
@@ -91,6 +95,7 @@ export default function AdminCasesPage() {
       const loadedCases = (caseResult.data as AdminCase[]) || [];
       setCases(loadedCases);
       setDocuments((documentResult.data as CaseDocument[]) || []);
+      if (requestedCaseId && loadedCases.some((legalCase) => legalCase.id === requestedCaseId)) setOpenCaseId(requestedCaseId);
 
       const userIds = Array.from(new Set(loadedCases.map((legalCase) => legalCase.user_id)));
       if (userIds.length > 0) {
@@ -100,7 +105,7 @@ export default function AdminCasesPage() {
       setLoading(false);
     }
 
-    loadPage();
+    void loadPage();
 
     const casesChannel = supabase.channel("admin-legal-cases")
       .on("postgres_changes", { event: "*", schema: "public", table: "legal_cases" }, (payload) => {
@@ -124,7 +129,13 @@ export default function AdminCasesPage() {
       supabase.removeChannel(casesChannel);
       supabase.removeChannel(documentsChannel);
     };
-  }, [router, supabase]);
+  }, [requestedCaseId, router, supabase]);
+
+  useEffect(() => {
+    if (!requestedCaseId || loading || openCaseId !== requestedCaseId) return;
+    const timer = window.setTimeout(() => document.getElementById(`dossier-${requestedCaseId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+    return () => window.clearTimeout(timer);
+  }, [loading, openCaseId, requestedCaseId]);
 
   const filteredCases = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -186,7 +197,7 @@ export default function AdminCasesPage() {
       </aside>
 
       <section className="admin-main admin-cases-page">
-        <header className="admin-cases-hero"><div><small>GESTION DES DEMANDES</small><h1>Dossiers clients</h1><p>Consultez les demandes, ouvrez les documents et actualisez leur traitement.</p></div><Link href="/nouveau-dossier">＋ Déposer un dossier test</Link></header>
+        <header className="admin-cases-hero"><div><small>GESTION DES DEMANDES</small><h1>Dossiers clients</h1><p>Consultez les demandes, ouvrez les documents et répondez au client depuis son dossier.</p></div><Link href="/nouveau-dossier">＋ Déposer un dossier test</Link></header>
         {notice && <div className="admin-case-notice">{notice}</div>}
 
         <section className="admin-case-stats">
@@ -206,21 +217,23 @@ export default function AdminCasesPage() {
           {filteredCases.length === 0 && <div className="admin-case-empty"><span>▣</span><h2>Aucun dossier correspondant</h2><p>Les dossiers transmis par les clients apparaîtront ici automatiquement.</p></div>}
           {filteredCases.map((legalCase) => {
             const profile = profiles[legalCase.user_id];
+            const clientName = profile?.full_name || profile?.company_name || "Client";
             const caseDocuments = documents.filter((document) => document.case_id === legalCase.id);
             const isOpen = openCaseId === legalCase.id;
-            return <article key={legalCase.id} className={`admin-case-card ${isOpen ? "open" : ""}`}>
+            return <article key={legalCase.id} id={`dossier-${legalCase.id}`} className={`admin-case-card ${isOpen ? "open" : ""}`}>
               <div className="admin-case-summary">
                 <div className="admin-case-ref"><small>{categoryLabels[legalCase.category] || legalCase.category}</small><b>{legalCase.reference}</b><span>{new Date(legalCase.created_at).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</span></div>
-                <div className="admin-case-subject"><h2>{legalCase.subject}</h2><p>{profile?.full_name || profile?.company_name || "Client"} · {legalCase.account_type} · {legalCase.urgency}</p></div>
+                <div className="admin-case-subject"><h2>{legalCase.subject}</h2><p>{clientName} · {legalCase.account_type} · {legalCase.urgency}</p></div>
                 <div className="admin-case-doc-count"><b>{caseDocuments.length}</b><span>document{caseDocuments.length > 1 ? "s" : ""}</span></div>
-                <label className={`admin-status-select status-${legalCase.status}`}><select value={legalCase.status} disabled={savingCaseId === legalCase.id} onChange={(event) => changeStatus(legalCase, event.target.value)}>{statusOptions.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
-                <button type="button" className="admin-case-open" onClick={() => setOpenCaseId(isOpen ? null : legalCase.id)}>{isOpen ? "Fermer" : "Ouvrir"}</button>
+                <label className={`admin-status-select status-${legalCase.status}`}><select value={legalCase.status} disabled={savingCaseId === legalCase.id} onChange={(event) => changeStatus(legalCase, event.target.value)}>{!statusOptions.includes(legalCase.status) && <option value={legalCase.status}>{statusLabels[legalCase.status] || legalCase.status}</option>}{statusOptions.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
+                <button type="button" className="admin-case-open" onClick={() => setOpenCaseId(isOpen ? null : legalCase.id)}>{isOpen ? "Fermer" : "Ouvrir et répondre"}</button>
               </div>
 
               {isOpen && <div className="admin-case-details">
                 <section><small>SITUATION TRANSMISE</small><h3>Description</h3><p>{legalCase.description}</p><h3>Résultat souhaité</h3><p>{legalCase.objective || "Non renseigné"}</p></section>
-                <section><small>INFORMATIONS</small><div className="admin-info-grid"><article><span>Client</span><b>{profile?.full_name || "Non renseigné"}</b></article><article><span>Profil</span><b>{legalCase.account_type}</b></article><article><span>Urgence</span><b>{legalCase.urgency}</b></article><article><span>Montant prévu</span><b>{formatAmount(legalCase.total_amount)}</b></article><article><span>Partie adverse</span><b>{legalCase.adverse_known ? legalCase.adverse_name || "À compléter" : "Non renseignée"}</b></article><article><span>Dernière mise à jour</span><b>{new Date(legalCase.updated_at).toLocaleString("fr-FR")}</b></article></div></section>
+                <section><small>INFORMATIONS</small><div className="admin-info-grid"><article><span>Client</span><b>{clientName}</b></article><article><span>Profil</span><b>{legalCase.account_type}</b></article><article><span>Urgence</span><b>{legalCase.urgency}</b></article><article><span>Montant prévu</span><b>{formatAmount(legalCase.total_amount)}</b></article><article><span>Partie adverse</span><b>{legalCase.adverse_known ? legalCase.adverse_name || "À compléter" : "Non renseignée"}</b></article><article><span>Dernière mise à jour</span><b>{new Date(legalCase.updated_at).toLocaleString("fr-FR")}</b></article></div></section>
                 <section className="admin-documents-section"><small>DOCUMENTS SÉCURISÉS</small><h3>Pièces jointes</h3>{caseDocuments.length === 0 ? <p>Aucun document enregistré.</p> : <div>{caseDocuments.map((document) => <button type="button" key={document.id} onClick={() => openDocument(document)}><span>▤</span><div><b>{document.original_name}</b><small>{formatSize(document.size_bytes)} · {new Date(document.created_at).toLocaleDateString("fr-FR")}</small></div><em>Ouvrir</em></button>)}</div>}</section>
+                <AdminCaseConversation caseId={legalCase.id} clientId={legalCase.user_id} reference={legalCase.reference} clientName={clientName} />
               </div>}
             </article>;
           })}
