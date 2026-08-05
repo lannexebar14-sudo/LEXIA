@@ -1,0 +1,20 @@
+name: Export Lexia source
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Upload Lexia source
+        uses: actions/upload-artifact@v4
+        with:
+          name: lexia-source
+          path: lexia-starter
+          include-hidden-files: true
+          retention-days: 1
