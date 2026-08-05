@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
 import "./case-conversation.css";
 
-type ConversationRole = "client" | "admin" | "juriste";
+type ConversationRole = "client" | "admin" | "juriste" | "avocat";
 
 type CaseMessage = {
   id: string;
@@ -64,7 +64,7 @@ export default function CaseConversation({ caseId, clientUserId, role }: Props) 
   const [error, setError] = useState("");
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  const isStaff = role === "admin" || role === "juriste";
+  const isStaff = role === "admin" || role === "juriste" || role === "avocat";
 
   async function markRead() {
     await supabase.rpc("mark_legal_case_messages_read", { p_case_id: caseId });
@@ -254,7 +254,13 @@ export default function CaseConversation({ caseId, clientUserId, role }: Props) 
         {messages.map((message) => {
           const own = message.sender_id === currentUserId;
           const messageAttachments = attachments.filter((attachment) => attachment.message_id === message.id);
-          const senderLabel = message.sender_role === "client" ? "Client" : message.sender_role === "juriste" ? "Juriste" : "Administration";
+          const senderLabel = message.sender_role === "client"
+            ? "Client"
+            : message.sender_role === "juriste"
+              ? "Juriste"
+              : message.sender_role === "avocat"
+                ? "Avocat"
+                : "Administration";
           const readLabel = own
             ? message.sender_role === "client"
               ? message.read_by_staff_at ? "Lu par l’équipe" : "Envoyé"
