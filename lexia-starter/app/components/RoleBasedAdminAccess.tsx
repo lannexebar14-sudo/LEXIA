@@ -6,6 +6,7 @@ import { createClient } from "../../lib/supabase/client";
 import { AppRole, isAppRole } from "../../lib/roles";
 
 const ROLE_CACHE_KEY = "lexia_current_role_v1";
+type AccessContext = { role?: string | null };
 
 function allowedDestination(role: AppRole, pathname: string) {
   if (role === "admin") return pathname;
@@ -106,9 +107,10 @@ export default function RoleBasedAdminAccess() {
         return;
       }
 
-      const { data: context, error } = await supabase
+      const { data, error } = await supabase
         .rpc("get_my_access_context")
         .maybeSingle();
+      const context = data as AccessContext | null;
 
       if (!active) return;
 
