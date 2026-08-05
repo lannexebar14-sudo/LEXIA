@@ -8,6 +8,14 @@ const supabasePublishableKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "sb_publishable_rQ0_cgEKffn_XcmhQ56mpA_411CYGEc";
 
-export function createClient() {
-  return createBrowserClient(supabaseUrl, supabasePublishableKey);
+type BrowserSupabaseClient = ReturnType<typeof createBrowserClient>;
+
+let browserClient: BrowserSupabaseClient | null = null;
+
+export function createClient(): BrowserSupabaseClient {
+  if (!browserClient) {
+    browserClient = createBrowserClient(supabaseUrl, supabasePublishableKey);
+  }
+
+  return browserClient;
 }
