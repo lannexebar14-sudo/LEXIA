@@ -25,6 +25,8 @@ const previewValues: Record<string, string> = {
   "{{ amount }}": "13,00 € TTC",
 };
 
+type AccessContext = { role?: string | null };
+
 function renderPreview(html: string) {
   return Object.entries(previewValues).reduce((result, [variable, value]) => result.split(variable).join(value), html);
 }
@@ -38,21 +40,30 @@ function templateType(template: LexiaEmailTemplate) {
 export default function AdministrationEmailsPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(lexiaEmailTemplates[0].id);
   const [category, setCategory] = useState<"all" | LexiaEmailTemplate["category"]>("all");
   const [mobilePreview, setMobilePreview] = useState(false);
   const [copied, setCopied] = useState("");
 
   useEffect(() => {
-    async function verifyAdmin() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.replace("/connexion?redirect=/administration/emails");
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (profile?.role !== "admin") return router.replace("/tableau-de-bord");
-      setLoading(false);
+    let active = true;
+
+    async function verifyAdminInBackground() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+      if (!session?.user) {
+        router.replace("/connexion?redirect=%2Fadministration%2Femails");
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("get_my_access_context").maybeSingle();
+      if (!active || error) return;
+      const context = data as AccessContext | null;
+      if (context?.role !== "admin") router.replace("/tableau-de-bord");
     }
-    void verifyAdmin();
+
+    void verifyAdminInBackground();
+    return () => { active = false; };
   }, [router, supabase]);
 
   const visibleTemplates = useMemo(
@@ -70,11 +81,9 @@ export default function AdministrationEmailsPage() {
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
   }
-
-  if (loading) return <main className="admin-loading">Chargement des modèles d’e-mails…</main>;
 
   return (
     <main className="admin-app">
