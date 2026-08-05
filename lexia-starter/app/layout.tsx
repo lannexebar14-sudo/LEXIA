@@ -15,6 +15,7 @@ import AdminEmailNavigation from "./components/AdminEmailNavigation";
 import AccessTimeoutRecovery from "./components/AccessTimeoutRecovery";
 import ClientCaseConversationMount from "./components/ClientCaseConversationMount";
 import RoleBasedAdminAccess from "./components/RoleBasedAdminAccess";
+import StaffSessionRedirect from "./components/StaffSessionRedirect";
 
 export const metadata: Metadata = {
   title: "LEXIA — Assistance juridique",
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AdminNavigationFix />
           <AdminEmailNavigation />
           <RoleBasedAdminAccess />
+          <StaffSessionRedirect />
           <ClientCaseConversationMount />
           <MobilePlatformBadge />
           <PwaExperience />
