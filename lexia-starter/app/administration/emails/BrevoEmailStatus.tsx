@@ -15,6 +15,9 @@ type CheckResult = {
   senderEmail?: string;
   senderName?: string;
   error?: string;
+  code?: string;
+  blockedIp?: string;
+  authorizationUrl?: string;
 };
 
 export default function BrevoEmailStatus() {
@@ -27,16 +30,24 @@ export default function BrevoEmailStatus() {
   const [senderFound, setSenderFound] = useState(false);
   const [senderActive, setSenderActive] = useState(false);
   const [message, setMessage] = useState("");
+  const [authorizationUrl, setAuthorizationUrl] = useState("");
+  const [blockedIp, setBlockedIp] = useState("");
 
   async function checkConnection() {
     setWorking(true);
     setMessage("");
+    setAuthorizationUrl("");
+    setBlockedIp("");
 
     const { data, error } = await supabase.functions.invoke("check-brevo-email", { body: {} });
     const result = (data || {}) as CheckResult;
 
     if (error || result.error) {
       setMessage(result.error || "La connexion Brevo n’a pas pu être vérifiée.");
+      if (result.code === "BREVO_IP_BLOCKED" && result.authorizationUrl) {
+        setAuthorizationUrl(result.authorizationUrl);
+        setBlockedIp(result.blockedIp || "");
+      }
       setWorking(false);
       return;
     }
@@ -130,19 +141,25 @@ export default function BrevoEmailStatus() {
         <p>Les e-mails Lexia partent depuis <strong>{senderName} &lt;{senderEmail}&gt;</strong>, avec le design de la plateforme.</p>
 
         {message && <span className={senderActive ? "brevo-success" : "brevo-notice"}>{message}</span>}
+        {blockedIp && <span className="brevo-ip-value">Adresse à autoriser : {blockedIp}</span>}
 
         <div className="brevo-actions">
-          {!senderFound && (
+          {authorizationUrl && (
+            <a className="brevo-authorize-link" href={authorizationUrl} target="_blank" rel="noreferrer">
+              Autoriser l’adresse IP Brevo
+            </a>
+          )}
+          {!authorizationUrl && !senderFound && (
             <button type="button" onClick={ensureSender} disabled={working}>
               {working ? "Configuration…" : "Créer l’expéditeur automatiquement"}
             </button>
           )}
-          {senderFound && !senderActive && (
+          {!authorizationUrl && senderFound && !senderActive && (
             <button type="button" onClick={checkConnection} disabled={working}>
               {working ? "Vérification…" : "J’ai validé l’e-mail Brevo"}
             </button>
           )}
-          {senderActive && (
+          {!authorizationUrl && senderActive && (
             <button type="button" onClick={checkConnection} disabled={working}>
               {working ? "Vérification…" : "Vérifier la connexion"}
             </button>
