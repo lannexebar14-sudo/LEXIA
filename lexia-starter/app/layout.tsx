@@ -4,6 +4,7 @@ import "./mobile-polish.css";
 import "./administration/mobile-header.css";
 import "./tableau-de-bord/client-mobile-header.css";
 import "./nouveau-dossier/stripe-checkout.css";
+import "./nouveau-dossier/mobile-header-fix.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
