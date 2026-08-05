@@ -11,6 +11,7 @@ import "../admin-console.css";
 import "../../mobile-app.css";
 import "./emails.css";
 import "./resend-test.css";
+import "./brevo.css";
 
 type AccessContext = { role?: string | null };
 
