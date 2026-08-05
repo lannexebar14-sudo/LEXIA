@@ -7,12 +7,14 @@ export default function AccessTimeoutRecovery() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const protectedRoute = pathname.startsWith("/administration") || pathname.startsWith("/tableau-de-bord");
+    // L’administration possède désormais sa propre récupération de session.
+    // Ce secours reste actif pour l’espace client historique.
+    const protectedRoute = pathname.startsWith("/tableau-de-bord");
     if (!protectedRoute) return;
 
     const recoveryKey = `lexia_access_recovery:${pathname}`;
     const timer = window.setTimeout(() => {
-      const blockedLoader = document.querySelector(".admin-loading, .app-loading");
+      const blockedLoader = document.querySelector(".app-loading");
       if (!blockedLoader) {
         window.sessionStorage.removeItem(recoveryKey);
         return;
