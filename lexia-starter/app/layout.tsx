@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./mobile-polish.css";
 import "./administration/mobile-header.css";
+import "./administration/dashboard-polish.css";
 import "./tableau-de-bord/client-mobile-header.css";
 import "./nouveau-dossier/stripe-checkout.css";
 import "./nouveau-dossier/mobile-header-fix.css";
