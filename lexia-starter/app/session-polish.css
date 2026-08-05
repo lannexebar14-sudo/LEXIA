@@ -1,0 +1,1 @@
+.app-loading{font-size:0!important;color:transparent!important;display:grid;place-items:center;min-height:100vh;background:#f4f7fa}.app-loading::after{content:"";width:34px;height:34px;border:3px solid rgba(9,29,51,.16);border-top-color:#091d33;border-radius:50%;animation:lexia-session-spin .7s linear infinite}@keyframes lexia-session-spin{to{transform:rotate(360deg)}}
