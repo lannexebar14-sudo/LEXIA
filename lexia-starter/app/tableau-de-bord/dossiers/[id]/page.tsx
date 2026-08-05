@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../../../../lib/supabase/client";
+import ClientCaseConversation from "./ClientCaseConversation";
 import "../../dashboard.css";
 import "../../../mobile-app.css";
 import "./case-detail.css";
+import "./conversation.css";
 
 type LegalCase = {
   id: string;
@@ -122,7 +124,7 @@ export default function ClientCaseDetailPage() {
       setLoading(false);
     }
 
-    loadCase();
+    void loadCase();
 
     const caseChannel = supabase
       .channel(`client-case-${params.id}`)
@@ -145,6 +147,12 @@ export default function ClientCaseDetailPage() {
       supabase.removeChannel(eventChannel);
     };
   }, [params.id, router, supabase]);
+
+  useEffect(() => {
+    if (loading || !legalCase || window.location.hash !== "#messagerie") return;
+    const timer = window.setTimeout(() => document.getElementById("messagerie")?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+    return () => window.clearTimeout(timer);
+  }, [legalCase, loading]);
 
   async function logout() {
     await supabase.auth.signOut();
@@ -170,7 +178,7 @@ export default function ClientCaseDetailPage() {
           <Link href="/tableau-de-bord">⌂ Tableau de bord</Link>
           <Link href="/nouveau-dossier">＋ Nouveau dossier</Link>
           <Link className="active" href="/tableau-de-bord#dossiers">▣ Mes dossiers</Link>
-          <Link href="/tableau-de-bord#messages">✉ Messagerie</Link>
+          <Link href="#messagerie">✉ Messagerie du dossier</Link>
           <Link href="/tableau-de-bord#transparence">🔔 Suivi des actions</Link>
           <Link href="/tableau-de-bord#documents">▤ Documents</Link>
         </nav>
@@ -188,7 +196,7 @@ export default function ClientCaseDetailPage() {
         </header>
 
         {searchParams.get("depot") === "confirme" && <div className="case-success-banner"><b>Votre dossier a bien été transmis.</b><span>L’administration peut maintenant le consulter et vous serez averti à chaque évolution.</span></div>}
-        {searchParams.get("documents") === "incomplets" && <div className="case-warning-banner">Le dossier est enregistré, mais certains documents n’ont pas pu être transférés. Vous pourrez les ajouter de nouveau ultérieurement.</div>}
+        {searchParams.get("documents") === "incomplets" && <div className="case-warning-banner">Le dossier est enregistré, mais certains documents n’ont pas pu être transférés. Vous pourrez les ajouter de nouveau dans la messagerie ci-dessous.</div>}
         {error && <div className="case-error-banner">{error}</div>}
 
         {legalCase && (
@@ -206,6 +214,8 @@ export default function ClientCaseDetailPage() {
                 <article><small>Documents</small><strong>{documents.length}</strong></article>
               </div>
             </section>
+
+            <ClientCaseConversation caseId={legalCase.id} userId={legalCase.user_id} reference={legalCase.reference} status={legalCase.status} />
 
             <div className="case-detail-grid">
               <section className="app-card case-main-card">
@@ -238,9 +248,9 @@ export default function ClientCaseDetailPage() {
                 <div className="case-service-list">
                   {services.length === 0 && <p>Aucune prestation complémentaire sélectionnée.</p>}
                   {services.map((service) => <article key={service.id}><span>{service.title}</span><b>{formatAmount(service.unit_amount)}</b></article>)}
-                  <article className="case-total"><span>Montant indicatif total</span><b>{formatAmount(legalCase.total_amount)}</b></article>
+                  <article className="case-total"><span>Montant total</span><b>{formatAmount(legalCase.total_amount)}</b></article>
                 </div>
-                <p className="case-payment-note">Le paiement en ligne LEXIA sera activé ultérieurement. Aucun débit n’a été effectué.</p>
+                <p className="case-payment-note">Le statut du paiement et du traitement est actualisé automatiquement dans ce dossier.</p>
               </section>
             </div>
           </>
