@@ -8,6 +8,7 @@ import AdminSupportInbox from "../[section]/AdminSupportInbox";
 import AdminCaseInbox from "./AdminCaseInbox";
 import "../admin.css";
 import "../[section]/section.css";
+import "./messaging-tabs.css";
 
 export default function AdministrationMessagesPage() {
   const router = useRouter();
