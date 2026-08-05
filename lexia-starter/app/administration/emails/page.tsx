@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import AdminEmailComposer from "./AdminEmailComposer";
 import BrevoEmailStatus from "./BrevoEmailStatus";
+import BrevoUiFix from "./BrevoUiFix";
 import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
@@ -47,6 +48,7 @@ export default function AdministrationEmailsPage() {
 
   return (
     <main className="admin-app">
+      <BrevoUiFix />
       <aside className="admin-sidebar">
         <Link href="/administration" className="admin-logo">LEXIA<span>.</span></Link>
         <div className="admin-badge">ADMINISTRATION</div>
