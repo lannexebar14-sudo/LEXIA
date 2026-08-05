@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import AdminSupportInbox from "../[section]/AdminSupportInbox";
+import AdminCaseInbox from "./AdminCaseInbox";
 import "../admin.css";
 import "../[section]/section.css";
 
 export default function AdministrationMessagesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"dossiers" | "support">(searchParams.get("support") === "1" ? "support" : "dossiers");
 
   useEffect(() => {
     async function verifyAdmin() {
@@ -21,7 +24,7 @@ export default function AdministrationMessagesPage() {
       if (profile?.role !== "admin") return router.replace("/tableau-de-bord");
       setLoading(false);
     }
-    verifyAdmin();
+    void verifyAdmin();
   }, [router, supabase]);
 
   async function logout() {
@@ -29,12 +32,17 @@ export default function AdministrationMessagesPage() {
     router.replace("/connexion");
   }
 
+  function changeTab(nextTab: "dossiers" | "support") {
+    setTab(nextTab);
+    router.replace(nextTab === "support" ? "/administration/messages?support=1" : "/administration/messages", { scroll: false });
+  }
+
   if (loading) return <main className="admin-loading">Vérification de vos accès…</main>;
 
   return (
     <main className="admin-app">
       <aside className="admin-sidebar">
-        <Link href="/" className="admin-logo">LEXIA<span>.</span></Link>
+        <Link href="/administration" className="admin-logo">LEXIA<span>.</span></Link>
         <div className="admin-badge">ADMINISTRATION</div>
         <nav>
           <Link href="/administration">◫ Vue d’ensemble</Link>
@@ -52,12 +60,18 @@ export default function AdministrationMessagesPage() {
       <section className="admin-main">
         <header className="section-header">
           <div>
-            <small>ASSISTANCE EN DIRECT</small>
+            <small>ÉCHANGES CENTRALISÉS</small>
             <h1>✉ Messagerie</h1>
-            <p>Retrouvez ici tous les messages envoyés depuis la bulle d’assistance du site.</p>
+            <p>Répondez aux clients dans leur dossier ou traitez les demandes envoyées depuis la bulle d’assistance.</p>
           </div>
         </header>
-        <AdminSupportInbox />
+
+        <div className="section-tabs" role="tablist" aria-label="Type de messagerie">
+          <button type="button" className={tab === "dossiers" ? "active" : ""} onClick={() => changeTab("dossiers")}>Dossiers clients</button>
+          <button type="button" className={tab === "support" ? "active" : ""} onClick={() => changeTab("support")}>Assistance du site</button>
+        </div>
+
+        {tab === "dossiers" ? <AdminCaseInbox /> : <AdminSupportInbox />}
       </section>
     </main>
   );
