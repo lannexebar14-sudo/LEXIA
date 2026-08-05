@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./mobile-polish.css";
+import "./session-polish.css";
 import "./administration/mobile-header.css";
 import "./administration/dashboard-polish.css";
 import "./tableau-de-bord/client-mobile-header.css";
@@ -15,7 +16,7 @@ import AdminEmailNavigation from "./components/AdminEmailNavigation";
 import AccessTimeoutRecovery from "./components/AccessTimeoutRecovery";
 import ClientCaseConversationMount from "./components/ClientCaseConversationMount";
 import RoleBasedAdminAccess from "./components/RoleBasedAdminAccess";
-import StaffSessionRedirect from "./components/StaffSessionRedirect";
+import FastSessionRouter from "./components/FastSessionRouter";
 
 export const metadata: Metadata = {
   title: "LEXIA — Assistance juridique",
@@ -45,12 +46,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fr">
       <body>
         <MaintenanceGateV2>
+          <FastSessionRouter />
           {children}
           <AccessTimeoutRecovery />
           <AdminNavigationFix />
           <AdminEmailNavigation />
           <RoleBasedAdminAccess />
-          <StaffSessionRedirect />
           <ClientCaseConversationMount />
           <MobilePlatformBadge />
           <PwaExperience />
