@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import { emailCategoryLabels, lexiaEmailTemplates, type LexiaEmailTemplate } from "../../../lib/emailTemplates";
+import AdminEmailComposer from "./AdminEmailComposer";
 import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
@@ -12,7 +13,7 @@ import "./emails.css";
 
 const previewValues: Record<string, string> = {
   "{{ .ConfirmationURL }}": "https://lexia-gold.vercel.app/connexion?confirmation=exemple",
-  "{{ .SiteURL }}": "https://lexia-gold.vercel.app",
+  "{{ .SiteURL }}": "https://lexiafrance.fr",
   "{{ .Token }}": "482731",
   "{{ .NewEmail }}": "nouvelle.adresse@exemple.fr",
   "{{ .OldEmail }}": "ancienne.adresse@exemple.fr",
@@ -109,7 +110,7 @@ export default function AdministrationEmailsPage() {
           <div>
             <small>IDENTITÉ DE COMMUNICATION</small>
             <h1>E-mails LEXIA</h1>
-            <p>Prévisualisez et centralisez tous les messages envoyés aux clients avec une identité homogène, rassurante et professionnelle.</p>
+            <p>Sélectionnez un client inscrit, envoyez-lui un message avec le design LEXIA et suivez l’historique des envois.</p>
           </div>
           <div className="email-studio-summary">
             <strong>{lexiaEmailTemplates.length}</strong>
@@ -119,11 +120,13 @@ export default function AdministrationEmailsPage() {
 
         <section className="email-activation-note">
           <div>
-            <b>Design terminé et compatible Supabase</b>
-            <p>Les six modèles d’authentification et les notifications de sécurité utilisent les variables officielles Supabase. Les e-mails de dossiers sont prêts pour le futur service d’envoi transactionnel.</p>
+            <b>Resend connecté à lexiafrance.fr</b>
+            <p>L’envoi sécurisé depuis contact@lexiafrance.fr est intégré. Les enregistrements DNS doivent être validés avant le premier envoi réel.</p>
           </div>
-          <span>PRÊT À ACTIVER</span>
+          <span>DNS À VALIDER</span>
         </section>
+
+        <AdminEmailComposer />
 
         <div className="email-studio-grid">
           <aside className="email-template-panel">
