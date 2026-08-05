@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
+import { AppRole, isAppRole } from "../../lib/roles";
 import "./dashboard.css";
 import "./cases-dashboard.css";
 import "../mobile-app.css";
@@ -31,6 +32,14 @@ type ClientCase = {
 
 type CaseDocumentRow = { case_id: string };
 type CaseServiceRow = { case_id: string };
+type AccessContext = {
+  user_id?: string | null;
+  email?: string | null;
+  full_name?: string | null;
+  role?: string | null;
+};
+
+const ROLE_CACHE_KEY = "lexia_current_role_v1";
 
 const statusLabels: Record<string, string> = {
   submitted: "Transmis à l’administration",
@@ -63,6 +72,20 @@ function notificationIcon(type: string) {
   return "✓";
 }
 
+function destinationForRole(role: AppRole) {
+  if (role === "admin") return "/administration";
+  if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
+  if (role === "developpeur") return "/administration/developpement";
+  return "/tableau-de-bord";
+}
+
+function withTimeout<T>(task: PromiseLike<T>, delay = 2200): Promise<T | null> {
+  return Promise.race([
+    Promise.resolve(task),
+    new Promise<null>((resolve) => window.setTimeout(() => resolve(null), delay)),
+  ]);
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -72,18 +95,59 @@ export default function DashboardPage() {
   const [cases, setCases] = useState<ClientCase[]>([]);
   const [documents, setDocuments] = useState<CaseDocumentRow[]>([]);
   const [services, setServices] = useState<CaseServiceRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(true);
+  const [syncWarning, setSyncWarning] = useState(false);
 
   useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.replace("/connexion");
-      const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).single();
-      if (profile?.role === "admin") return router.replace("/administration");
-      setName(profile?.full_name || user.email?.split("@")[0] || "Client");
-      setUserId(user.id);
+    let active = true;
+
+    const cachedValue = window.sessionStorage.getItem(ROLE_CACHE_KEY);
+    const cachedRole = isAppRole(cachedValue) ? cachedValue : null;
+    if (cachedRole && cachedRole !== "client") {
+      router.replace(destinationForRole(cachedRole));
+      return () => { active = false; };
     }
-    loadProfile();
+
+    async function openSession() {
+      const sessionResult = await withTimeout(supabase.auth.getSession(), 1400);
+      if (!active) return;
+
+      if (!sessionResult) {
+        setSyncing(false);
+        setSyncWarning(true);
+        return;
+      }
+
+      const session = sessionResult.data.session;
+      if (!session?.user) {
+        router.replace("/connexion");
+        return;
+      }
+
+      setUserId(session.user.id);
+      setName(session.user.email?.split("@")[0] || "Client");
+
+      const accessResult = await withTimeout(
+        supabase.rpc("get_my_access_context").maybeSingle(),
+        1800,
+      );
+      if (!active) return;
+
+      if (accessResult && !accessResult.error) {
+        const context = accessResult.data as AccessContext | null;
+        const role: AppRole = isAppRole(context?.role) ? context.role : "client";
+        window.sessionStorage.setItem(ROLE_CACHE_KEY, role);
+        setName(context?.full_name || context?.email?.split("@")[0] || session.user.email?.split("@")[0] || "Client");
+
+        if (role !== "client") {
+          router.replace(destinationForRole(role));
+          return;
+        }
+      }
+    }
+
+    void openSession();
+    return () => { active = false; };
   }, [router, supabase]);
 
   useEffect(() => {
@@ -91,22 +155,50 @@ export default function DashboardPage() {
     let mounted = true;
 
     async function loadDashboard() {
-      const [notificationResult, caseResult, documentResult, serviceResult] = await Promise.all([
-        supabase.from("client_notifications").select("id,type,title,message,url,read_at,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
-        supabase.from("legal_cases").select("id,reference,subject,category,status,urgency,created_at,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
-        supabase.from("legal_case_documents").select("case_id").eq("user_id", userId),
-        supabase.from("legal_case_services").select("case_id"),
+      setSyncing(true);
+      setSyncWarning(false);
+
+      const results = await Promise.all([
+        withTimeout(
+          supabase.from("client_notifications").select("id,type,title,message,url,read_at,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(30),
+          2500,
+        ),
+        withTimeout(
+          supabase.from("legal_cases").select("id,reference,subject,category,status,urgency,created_at,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
+          2500,
+        ),
+        withTimeout(
+          supabase.from("legal_case_documents").select("case_id").eq("user_id", userId),
+          2500,
+        ),
+        withTimeout(
+          supabase.from("legal_case_services").select("case_id"),
+          2500,
+        ),
       ]);
 
       if (!mounted) return;
-      setNotifications((notificationResult.data as ClientNotification[]) || []);
-      setCases((caseResult.data as ClientCase[]) || []);
-      setDocuments((documentResult.data as CaseDocumentRow[]) || []);
-      setServices((serviceResult.data as CaseServiceRow[]) || []);
-      setLoading(false);
+      const [notificationResult, caseResult, documentResult, serviceResult] = results;
+
+      if (notificationResult && !notificationResult.error) {
+        setNotifications((notificationResult.data as ClientNotification[]) || []);
+      }
+      if (caseResult && !caseResult.error) {
+        setCases((caseResult.data as ClientCase[]) || []);
+      }
+      if (documentResult && !documentResult.error) {
+        setDocuments((documentResult.data as CaseDocumentRow[]) || []);
+      }
+      if (serviceResult && !serviceResult.error) {
+        setServices((serviceResult.data as CaseServiceRow[]) || []);
+      }
+
+      const incomplete = results.some((result) => !result || Boolean(result.error));
+      setSyncWarning(incomplete);
+      setSyncing(false);
     }
 
-    loadDashboard();
+    void loadDashboard();
 
     const notificationChannel = supabase
       .channel(`client-notifications-${userId}`)
@@ -124,14 +216,15 @@ export default function DashboardPage() {
           return;
         }
         const incoming = payload.new as ClientCase;
-        setCases((current) => [incoming, ...current.filter((item) => item.id !== incoming.id)].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setCases((current) => [incoming, ...current.filter((item) => item.id !== incoming.id)]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       })
       .subscribe();
 
     return () => {
       mounted = false;
-      supabase.removeChannel(notificationChannel);
-      supabase.removeChannel(caseChannel);
+      void supabase.removeChannel(notificationChannel);
+      void supabase.removeChannel(caseChannel);
     };
   }, [supabase, userId]);
 
@@ -155,11 +248,10 @@ export default function DashboardPage() {
   }
 
   async function logout() {
+    window.sessionStorage.removeItem(ROLE_CACHE_KEY);
     await supabase.auth.signOut();
     router.replace("/connexion");
   }
-
-  if (loading) return <main className="app-loading">Chargement de votre espace…</main>;
 
   return (
     <main className="client-app">
@@ -179,9 +271,18 @@ export default function DashboardPage() {
 
       <section className="client-content">
         <header className="app-topbar">
-          <div><small>ESPACE CLIENT</small><h1>Bonjour {name}</h1></div>
+          <div>
+            <small>{syncing ? "ESPACE CLIENT · SYNCHRONISATION…" : "ESPACE CLIENT"}</small>
+            <h1>Bonjour {name}</h1>
+          </div>
           <Link href="/nouveau-dossier" className="app-primary">Déposer un dossier</Link>
         </header>
+
+        {syncWarning && (
+          <div className="dashboard-sync-warning">
+            Certaines informations mettent plus de temps à arriver, mais votre espace reste utilisable.
+          </div>
+        )}
 
         <div className="client-hero">
           <div><span>Votre assistance juridique</span><h2>Comment pouvons-nous vous aider aujourd’hui ?</h2><p>Expliquez votre situation, ajoutez vos documents et suivez chaque action de l’administration dans un espace confidentiel.</p></div>
@@ -198,7 +299,7 @@ export default function DashboardPage() {
         <section className="app-card client-cases-card" id="dossiers">
           <div className="card-title"><div><small>VOS DEMANDES</small><h3>Mes dossiers</h3><p>Consultez leur statut, les documents et la chronologie complète.</p></div><Link href="/nouveau-dossier">Nouveau dossier</Link></div>
           {cases.length === 0 ? (
-            <div className="empty-state"><div>⚖</div><h4>Aucun dossier déposé</h4><p>Votre première demande apparaîtra ici avec sa référence et les actions de l’administration.</p><Link href="/nouveau-dossier">Déposer mon premier dossier</Link></div>
+            <div className="empty-state"><div>⚖</div><h4>{syncing ? "Synchronisation des dossiers…" : "Aucun dossier déposé"}</h4><p>{syncing ? "La page reste accessible pendant la récupération de vos informations." : "Votre première demande apparaîtra ici avec sa référence et les actions de l’administration."}</p>{!syncing && <Link href="/nouveau-dossier">Déposer mon premier dossier</Link>}</div>
           ) : (
             <div className="client-case-list">
               {cases.map((legalCase) => {
@@ -216,7 +317,7 @@ export default function DashboardPage() {
           </div>
 
           {notifications.length === 0 ? (
-            <div className="transparency-empty"><span>✓</span><div><b>Aucune action en attente</b><p>Les réponses, mises à jour et changements de statut apparaîtront ici.</p></div></div>
+            <div className="transparency-empty"><span>✓</span><div><b>{syncing ? "Synchronisation en cours" : "Aucune action en attente"}</b><p>{syncing ? "Les dernières actions apparaîtront sans bloquer votre navigation." : "Les réponses, mises à jour et changements de statut apparaîtront ici."}</p></div></div>
           ) : (
             <div className="notification-list">
               {notifications.map((notification) => <button type="button" key={notification.id} className={`notification-row ${notification.read_at ? "read" : "unread"}`} onClick={() => openNotification(notification)}><span className="notification-icon">{notificationIcon(notification.type)}</span><span className="notification-copy"><b>{notification.title}</b><span>{notification.message}</span><small>{new Date(notification.created_at).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</small></span>{!notification.read_at && <i>Nouveau</i>}<em>›</em></button>)}
