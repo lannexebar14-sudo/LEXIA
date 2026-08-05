@@ -5,7 +5,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import AdminEmailComposer from "./AdminEmailComposer";
-import ResendTestSetup from "./ResendTestSetup";
+import GmailSmtpSetup from "./ResendTestSetup";
 import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
@@ -74,17 +74,17 @@ export default function AdministrationEmailsPage() {
             <div className="email-brand-lock" aria-hidden="true">♙</div>
           </header>
 
-          <section className="email-dns-card test-mode">
-            <div className="email-dns-icon" aria-hidden="true">✓</div>
+          <section className="email-dns-card gmail-mode">
+            <div className="email-dns-icon" aria-hidden="true">✉</div>
             <div>
               <small>CONFIGURATION D’ENVOI</small>
-              <b>Mode test Resend</b>
-              <p>Envoi temporaire sans utiliser lexiafrance.fr, depuis onboarding@resend.dev.</p>
+              <b>Envoi Gmail sécurisé</b>
+              <p>Envoyez les messages Lexia à tous les clients depuis lannexebar14@gmail.com, sans attendre l’achat d’un domaine.</p>
             </div>
-            <span>TEMPORAIRE</span>
+            <span>GMAIL</span>
           </section>
 
-          <ResendTestSetup />
+          <GmailSmtpSetup />
           <AdminEmailComposer />
         </div>
       </section>
