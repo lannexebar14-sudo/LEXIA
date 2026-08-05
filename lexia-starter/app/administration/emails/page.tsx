@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 import AdminEmailComposer from "./AdminEmailComposer";
+import ResendTestSetup from "./ResendTestSetup";
 import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
@@ -72,16 +73,17 @@ export default function AdministrationEmailsPage() {
             <div className="email-brand-lock" aria-hidden="true">♙</div>
           </header>
 
-          <section className="email-dns-card">
+          <section className="email-dns-card test-mode">
             <div className="email-dns-icon" aria-hidden="true">✓</div>
             <div>
               <small>CONFIGURATION D’ENVOI</small>
-              <b>DNS à valider</b>
-              <p>Validez le domaine lexiafrance.fr pour activer l’envoi à tous les clients.</p>
+              <b>Mode test Resend</b>
+              <p>Envoi temporaire sans utiliser lexiafrance.fr, depuis onboarding@resend.dev.</p>
             </div>
-            <span>EN ATTENTE</span>
+            <span>TEMPORAIRE</span>
           </section>
 
+          <ResendTestSetup />
           <AdminEmailComposer />
         </div>
       </section>
