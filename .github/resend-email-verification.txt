@@ -1,0 +1,1 @@
+Vérification temporaire de la compilation de l’interface d’envoi d’e-mails LEXIA.
