@@ -3,7 +3,33 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
+import { AppRole, isAppRole } from "../../lib/roles";
 import "./connexion.css";
+
+const ROLE_CACHE_KEY = "lexia_current_role_v1";
+
+type AccessContext = {
+  role?: string | null;
+};
+
+function safeRequestedRedirect() {
+  const requested = new URLSearchParams(window.location.search).get("redirect");
+  return requested?.startsWith("/") && !requested.startsWith("//") ? requested : null;
+}
+
+function destinationForRole(role: AppRole, requestedRedirect: string | null) {
+  if (role === "admin") return requestedRedirect || "/administration";
+  if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
+  if (role === "developpeur") return "/administration/utilisateurs";
+  return "/tableau-de-bord";
+}
+
+async function withTimeout<T>(task: PromiseLike<T>, delay = 3000): Promise<T | null> {
+  return Promise.race([
+    Promise.resolve(task),
+    new Promise<null>((resolve) => window.setTimeout(() => resolve(null), delay)),
+  ]);
+}
 
 export default function ConnexionPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -15,30 +41,23 @@ export default function ConnexionPage() {
   useEffect(() => {
     let active = true;
 
-    async function continueExistingAdminSession() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("maintenance") !== "1") return;
+    async function continueExistingSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active || !session?.user) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!active || !user) return;
+      const result = await withTimeout(
+        supabase.rpc("get_my_access_context").maybeSingle(),
+        2500,
+      );
+      if (!active || !result || result.error) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!active || profile?.role !== "admin") return;
-
-      const requestedRedirect = params.get("redirect");
-      const destination = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
-        ? requestedRedirect
-        : "/administration";
-
-      window.location.replace(destination);
+      const context = result.data as AccessContext | null;
+      const role: AppRole = isAppRole(context?.role) ? context.role : "client";
+      window.sessionStorage.setItem(ROLE_CACHE_KEY, role);
+      window.location.replace(destinationForRole(role, safeRequestedRedirect()));
     }
 
-    void continueExistingAdminSession();
+    void continueExistingSession();
     return () => {
       active = false;
     };
@@ -62,28 +81,23 @@ export default function ConnexionPage() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
+    const result = await withTimeout(
+      supabase.rpc("get_my_access_context").maybeSingle(),
+      3000,
+    );
 
-    if (profileError) {
-      setError("Connexion réussie, mais votre profil n'a pas pu être chargé.");
-      setLoading(false);
+    if (result && !result.error) {
+      const context = result.data as AccessContext | null;
+      const role: AppRole = isAppRole(context?.role) ? context.role : "client";
+      window.sessionStorage.setItem(ROLE_CACHE_KEY, role);
+      window.location.replace(destinationForRole(role, safeRequestedRedirect()));
       return;
     }
 
-    const requestedRedirect = new URLSearchParams(window.location.search).get("redirect");
-    const safeRedirect = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
-      ? requestedRedirect
-      : null;
-
-    const destination = profile?.role === "admin"
-      ? safeRedirect || "/administration"
-      : "/tableau-de-bord";
-
-    window.location.replace(destination);
+    // La session est valide : le tableau de bord reprend automatiquement
+    // la vérification si le réseau met plus de temps que prévu.
+    window.sessionStorage.removeItem(ROLE_CACHE_KEY);
+    window.location.replace("/tableau-de-bord");
   }
 
   async function handleResetPassword() {
@@ -142,7 +156,7 @@ export default function ConnexionPage() {
           <div className="signup-form-heading">
             <span>ESPACE PERSONNEL</span>
             <h2>Connexion</h2>
-            <p>Accédez à votre espace client ou administrateur.</p>
+            <p>Accédez directement à l’espace correspondant à votre rôle.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="signup-form login-form">
@@ -170,7 +184,7 @@ export default function ConnexionPage() {
             {message && <div className="signup-alert signup-success">{message}</div>}
 
             <button className="signup-submit" disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter"}
+              {loading ? "Ouverture de votre espace..." : "Se connecter"}
             </button>
           </form>
 
