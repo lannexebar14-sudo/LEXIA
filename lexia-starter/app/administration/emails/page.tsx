@@ -10,6 +10,7 @@ import "../admin.css";
 import "../admin-console.css";
 import "../../mobile-app.css";
 import "./emails.css";
+import "./resend-test.css";
 
 type AccessContext = { role?: string | null };
 
