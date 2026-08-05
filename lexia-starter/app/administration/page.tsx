@@ -28,6 +28,15 @@ type PaymentRow = {
   paid_at: string | null;
 };
 
+function withTimeout<T>(task: PromiseLike<T>, delay: number): Promise<T> {
+  return Promise.race([
+    Promise.resolve(task),
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error("timeout")), delay);
+    }),
+  ]);
+}
+
 const statusLabels: Record<string, string> = {
   submitted: "Nouveau dossier",
   payment_pending: "Paiement en attente",
@@ -42,6 +51,7 @@ export default function AdministrationPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState("");
   const [cases, setCases] = useState<AdminCase[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
 
@@ -49,23 +59,61 @@ export default function AdministrationPage() {
     let mounted = true;
 
     async function loadAdmin() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.replace("/connexion");
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (profile?.role !== "admin") return router.replace("/tableau-de-bord");
+      try {
+        const sessionResult = await withTimeout(supabase.auth.getSession(), 2500);
+        let user = sessionResult.data.session?.user ?? null;
 
-      const [caseResult, paymentResult] = await Promise.all([
-        supabase.from("legal_cases").select("id,reference,subject,category,status,urgency,total_amount,created_at,updated_at").order("created_at", { ascending: false }),
-        supabase.from("payment_transactions").select("amount,status,paid_at").eq("status", "paid"),
-      ]);
+        if (!user) {
+          const userResult = await withTimeout(supabase.auth.getUser(), 4000);
+          user = userResult.data.user;
+        }
 
-      if (!mounted) return;
-      setCases((caseResult.data as AdminCase[]) || []);
-      setPayments((paymentResult.data as PaymentRow[]) || []);
-      setLoading(false);
+        if (!mounted) return;
+        if (!user) {
+          window.location.replace("/connexion?redirect=%2Fadministration&recovery=1");
+          return;
+        }
+
+        const profileResult = await withTimeout(
+          supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+          4500,
+        );
+
+        if (!mounted) return;
+        if (profileResult.error) throw profileResult.error;
+        if (profileResult.data?.role !== "admin") {
+          window.location.replace("/tableau-de-bord");
+          return;
+        }
+
+        setAccessError("");
+
+        try {
+          const [caseResult, paymentResult] = await withTimeout(
+            Promise.all([
+              supabase.from("legal_cases").select("id,reference,subject,category,status,urgency,total_amount,created_at,updated_at").order("created_at", { ascending: false }),
+              supabase.from("payment_transactions").select("amount,status,paid_at").eq("status", "paid"),
+            ]),
+            8000,
+          );
+
+          if (!mounted) return;
+          setCases((caseResult.data as AdminCase[]) || []);
+          setPayments((paymentResult.data as PaymentRow[]) || []);
+        } catch {
+          if (!mounted) return;
+          setCases([]);
+          setPayments([]);
+        }
+      } catch {
+        if (!mounted) return;
+        setAccessError("La vérification de votre session a pris trop de temps. Vous pouvez relancer l’accès sans rester bloqué.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
-    loadAdmin();
+    void loadAdmin();
 
     const channel = supabase
       .channel("admin-dashboard-cases")
@@ -81,9 +129,9 @@ export default function AdministrationPage() {
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [router, supabase]);
+  }, [supabase]);
 
   const now = new Date();
   const weekStart = new Date(now);
@@ -96,11 +144,26 @@ export default function AdministrationPage() {
   const recentCases = cases.slice(0, 5);
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
   }
 
   if (loading) return <main className="admin-loading">Vérification de vos accès…</main>;
+
+  if (accessError) {
+    return (
+      <main className="admin-loading">
+        <section style={{ maxWidth: 520, padding: 28, textAlign: "center" }}>
+          <strong style={{ display: "block", marginBottom: 12 }}>Accès temporairement interrompu</strong>
+          <p style={{ margin: "0 0 20px", lineHeight: 1.6 }}>{accessError}</p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button type="button" onClick={() => window.location.reload()}>Réessayer</button>
+            <button type="button" onClick={() => window.location.replace("/connexion?redirect=%2Fadministration&recovery=1")}>Se reconnecter</button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="admin-app">
