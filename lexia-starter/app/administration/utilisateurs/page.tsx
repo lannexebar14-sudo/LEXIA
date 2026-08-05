@@ -49,6 +49,10 @@ type RoleChange = {
   changed_at: string;
 };
 
+type AccessContext = { role?: string | null };
+
+const ROLE_CACHE_KEY = "lexia_current_role_v1";
+
 const permissionLabels: Array<[keyof RolePermission, string]> = [
   ["can_access_backoffice", "Accès au back-office"],
   ["can_view_assigned_cases", "Dossiers attribués"],
@@ -94,23 +98,29 @@ export default function UsersAndRolesPage() {
     let mounted = true;
 
     async function loadPage() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         router.replace("/connexion?redirect=%2Fadministration%2Futilisateurs");
         return;
       }
 
-      const { data: ownProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
+      const { data: accessData, error: accessError } = await supabase
+        .rpc("get_my_access_context")
         .maybeSingle();
 
-      const ownRole = isAppRole(ownProfile?.role) ? ownProfile.role : "client";
+      if (!mounted) return;
+      const access = accessData as AccessContext | null;
+      const ownRole: AppRole = !accessError && isAppRole(access?.role) ? access.role : "client";
+
       if (!ROLE_MANAGER_ROLES.includes(ownRole)) {
         router.replace(ownRole === "juriste" || ownRole === "avocat" ? "/administration/mes-dossiers" : "/tableau-de-bord");
         return;
       }
+
+      window.sessionStorage.setItem(ROLE_CACHE_KEY, ownRole);
+      setCurrentUserId(session.user.id);
+      setCurrentRole(ownRole);
+      setLoading(false);
 
       const [usersResult, permissionsResult, historyResult] = await Promise.all([
         supabase.rpc("list_users_with_roles"),
@@ -121,23 +131,22 @@ export default function UsersAndRolesPage() {
       if (!mounted) return;
       if (usersResult.error || permissionsResult.error) {
         setError("Les utilisateurs et leurs droits n’ont pas pu être chargés.");
-      } else {
-        const normalizedUsers = ((usersResult.data as UserRow[]) || []).map((item) => ({
-          ...item,
-          role: isAppRole(item.role) ? item.role : "client",
-        }));
-        setUsers(normalizedUsers);
-        setPermissions((permissionsResult.data as RolePermission[]) || []);
-        setHistory((historyResult.data as RoleChange[]) || []);
+        return;
       }
 
-      setCurrentUserId(user.id);
-      setCurrentRole(ownRole);
-      setLoading(false);
+      const normalizedUsers = ((usersResult.data as UserRow[]) || []).map((item) => ({
+        ...item,
+        role: isAppRole(item.role) ? item.role : "client",
+      }));
+      setUsers(normalizedUsers);
+      setPermissions((permissionsResult.data as RolePermission[]) || []);
+      setHistory((historyResult.data as RoleChange[]) || []);
     }
 
     void loadPage();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [router, supabase]);
 
   const filteredUsers = useMemo(() => {
@@ -149,17 +158,26 @@ export default function UsersAndRolesPage() {
     });
   }, [query, roleFilter, users]);
 
-  const counts = useMemo(() => Object.fromEntries(APP_ROLES.map((role) => [role, users.filter((user) => user.role === role).length])) as Record<AppRole, number>, [users]);
+  const counts = useMemo(
+    () => Object.fromEntries(APP_ROLES.map((role) => [role, users.filter((user) => user.role === role).length])) as Record<AppRole, number>,
+    [users],
+  );
   const usersById = useMemo(() => Object.fromEntries(users.map((user) => [user.id, user])), [users]);
+
+  function selectRoleFilter(role: AppRole) {
+    setRoleFilter((current) => current === role ? "all" : role);
+  }
 
   async function changeRole(user: UserRow, nextValue: string) {
     if (!isAppRole(nextValue) || nextValue === user.role || savingUserId) return;
     const confirmed = window.confirm(`Attribuer le rôle « ${ROLE_LABELS[nextValue]} » à ${user.full_name || user.email} ?`);
     if (!confirmed) return;
 
+    const previousRole = user.role;
     setSavingUserId(user.id);
     setNotice("");
     setError("");
+    setUsers((current) => current.map((item) => item.id === user.id ? { ...item, role: nextValue } : item));
 
     const { error: roleError } = await supabase.rpc("set_user_role", {
       p_user_id: user.id,
@@ -167,22 +185,23 @@ export default function UsersAndRolesPage() {
     });
 
     if (roleError) {
+      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, role: previousRole } : item));
       setError(roleError.message || "Le rôle n’a pas pu être modifié.");
     } else {
-      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, role: nextValue } : item));
       setNotice(`${user.full_name || user.email} est maintenant ${ROLE_LABELS[nextValue].toLowerCase()}.`);
-      await loadRoleHistory();
+      void loadRoleHistory();
     }
 
     setSavingUserId("");
   }
 
   async function logout() {
+    window.sessionStorage.removeItem(ROLE_CACHE_KEY);
     await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
   }
 
-  if (loading) return <main className="admin-loading">Chargement des utilisateurs et des droits…</main>;
+  if (loading) return <main className="admin-loading">Ouverture des utilisateurs…</main>;
 
   return (
     <main className="admin-app roles-admin-page">
@@ -219,12 +238,18 @@ export default function UsersAndRolesPage() {
         {notice && <div className="roles-notice success">✓ {notice}</div>}
         {error && <div className="roles-notice error">! {error}</div>}
 
-        <section className="roles-stats">
+        <section className="roles-stats" aria-label="Filtrer par rôle">
           {APP_ROLES.map((role) => (
-            <article key={role}>
+            <button
+              type="button"
+              key={role}
+              className={roleFilter === role ? "active" : ""}
+              onClick={() => selectRoleFilter(role)}
+              aria-pressed={roleFilter === role}
+            >
               <span className={`role-dot role-${role}`} />
               <div><small>{ROLE_LABELS[role]}</small><strong>{counts[role]}</strong></div>
-            </article>
+            </button>
           ))}
         </section>
 
