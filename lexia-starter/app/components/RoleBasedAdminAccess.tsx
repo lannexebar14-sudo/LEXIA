@@ -16,13 +16,8 @@ function allowedDestination(role: AppRole, pathname: string) {
   }
 
   if (role === "developpeur") {
-    if (
-      pathname.startsWith("/administration/utilisateurs")
-      || pathname.startsWith("/administration/parametres")
-      || pathname.startsWith("/administration/prestations")
-      || pathname.startsWith("/administration/emails")
-    ) return pathname;
-    return "/administration/utilisateurs";
+    if (pathname.startsWith("/administration/utilisateurs") || pathname.startsWith("/administration/developpement")) return pathname;
+    return "/administration/developpement";
   }
 
   return "/tableau-de-bord";
@@ -33,15 +28,23 @@ function configureSidebar(role: AppRole, pathname: string) {
   if (sidebars.length === 0) return false;
 
   sidebars.forEach((nav) => {
-    let rolesLink = nav.querySelector<HTMLAnchorElement>('a[data-lexia-roles-link="true"]');
+    let rolesLink = nav.querySelector<HTMLAnchorElement>('a[href="/administration/utilisateurs"]');
     if (!rolesLink && (role === "admin" || role === "developpeur")) {
       rolesLink = document.createElement("a");
       rolesLink.href = "/administration/utilisateurs";
       rolesLink.textContent = "♟ Utilisateurs & rôles";
-      rolesLink.dataset.lexiaRolesLink = "true";
       const settingsLink = nav.querySelector<HTMLAnchorElement>('a[href="/administration/parametres"]');
       if (settingsLink) nav.insertBefore(rolesLink, settingsLink);
       else nav.appendChild(rolesLink);
+    }
+    if (rolesLink) rolesLink.dataset.lexiaRolesLink = "true";
+
+    let developerLink = nav.querySelector<HTMLAnchorElement>('a[href="/administration/developpement"]');
+    if (!developerLink && role === "developpeur") {
+      developerLink = document.createElement("a");
+      developerLink.href = "/administration/developpement";
+      developerLink.textContent = "⌘ Centre technique";
+      nav.insertBefore(developerLink, nav.firstChild);
     }
 
     nav.querySelectorAll<HTMLAnchorElement>("a").forEach((link) => {
@@ -62,15 +65,15 @@ function configureSidebar(role: AppRole, pathname: string) {
           link.textContent = "✉ Ma messagerie";
         }
       } else if (role === "developpeur") {
-        visible = href.startsWith("/administration/utilisateurs")
-          || href.startsWith("/administration/parametres")
-          || href.startsWith("/administration/prestations")
-          || href.startsWith("/administration/emails");
+        visible = href.startsWith("/administration/utilisateurs") || href.startsWith("/administration/developpement");
       }
 
       link.hidden = !visible;
       if (href.startsWith("/administration/utilisateurs")) {
         link.classList.toggle("active", pathname.startsWith("/administration/utilisateurs"));
+      }
+      if (href.startsWith("/administration/developpement")) {
+        link.classList.toggle("active", pathname.startsWith("/administration/developpement"));
       }
     });
   });
