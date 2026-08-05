@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import "./mobile-polish.css";
 import "./session-polish.css";
@@ -47,7 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <MaintenanceGateV2>
           <FastSessionRouter />
-          {children}
+          <Suspense fallback={null}>{children}</Suspense>
           <AccessTimeoutRecovery />
           <AdminNavigationFix />
           <AdminEmailNavigation />
