@@ -10,6 +10,7 @@ import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
 import MaintenanceGate from "./components/MaintenanceGate";
 import AdminNavigationFix from "./components/AdminNavigationFix";
+import AdminEmailNavigation from "./components/AdminEmailNavigation";
 import ClientCaseConversationMount from "./components/ClientCaseConversationMount";
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <MaintenanceGate>
           {children}
           <AdminNavigationFix />
+          <AdminEmailNavigation />
           <ClientCaseConversationMount />
           <MobilePlatformBadge />
           <PwaExperience />
