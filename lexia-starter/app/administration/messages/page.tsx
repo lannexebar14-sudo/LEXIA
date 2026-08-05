@@ -10,26 +10,37 @@ import "../admin.css";
 import "../[section]/section.css";
 import "./messaging-tabs.css";
 
+type AccessContext = { role?: string | null };
+
 export default function AdministrationMessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
-  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"dossiers" | "support">(searchParams.get("support") === "1" ? "support" : "dossiers");
 
   useEffect(() => {
-    async function verifyAdmin() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.replace("/connexion");
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (profile?.role !== "admin") return router.replace("/tableau-de-bord");
-      setLoading(false);
+    let active = true;
+
+    async function verifyAdminInBackground() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+      if (!session?.user) {
+        router.replace("/connexion?redirect=%2Fadministration%2Fmessages");
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("get_my_access_context").maybeSingle();
+      if (!active || error) return;
+      const context = data as AccessContext | null;
+      if (context?.role !== "admin") router.replace("/tableau-de-bord");
     }
-    void verifyAdmin();
+
+    void verifyAdminInBackground();
+    return () => { active = false; };
   }, [router, supabase]);
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
   }
 
@@ -37,8 +48,6 @@ export default function AdministrationMessagesPage() {
     setTab(nextTab);
     router.replace(nextTab === "support" ? "/administration/messages?support=1" : "/administration/messages", { scroll: false });
   }
-
-  if (loading) return <main className="admin-loading">Vérification de vos accès…</main>;
 
   return (
     <main className="admin-app">
@@ -53,6 +62,7 @@ export default function AdministrationMessagesPage() {
           <Link href="/administration/juristes">⚖ Juristes</Link>
           <Link href="/administration/prestations">€ Prestations</Link>
           <Link href="/administration/avocats">⌖ Avocats partenaires</Link>
+          <Link href="/administration/emails">＠ E-mails</Link>
           <Link href="/administration/parametres">⚙ Paramètres</Link>
         </nav>
         <button onClick={logout}>Se déconnecter</button>
