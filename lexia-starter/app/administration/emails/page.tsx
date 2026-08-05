@@ -80,7 +80,7 @@ export default function AdministrationEmailsPage() {
             <div>
               <small>CONFIGURATION D’ENVOI</small>
               <b>Envoi Brevo sécurisé</b>
-              <p>Envoyez les messages Lexia à tous les clients depuis lannexebar14@gmail.com, sans mot de passe d’application Google.</p>
+              <p>Les messages Lexia sont envoyés depuis l’expéditeur vérifié thieryvalentin2@gmail.com.</p>
             </div>
             <span>BREVO</span>
           </section>
