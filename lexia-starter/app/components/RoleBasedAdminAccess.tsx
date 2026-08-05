@@ -9,7 +9,7 @@ function allowedDestination(role: AppRole, pathname: string) {
   if (role === "admin") return pathname;
 
   if (role === "juriste" || role === "avocat") {
-    if (pathname.startsWith("/administration/mes-dossiers") || pathname.startsWith("/administration/messages")) return pathname;
+    if (pathname.startsWith("/administration/mes-dossiers") || pathname.startsWith("/administration/mes-messages")) return pathname;
     return "/administration/mes-dossiers";
   }
 
@@ -46,10 +46,15 @@ function configureSidebar(role: AppRole, pathname: string) {
       if (role === "juriste" || role === "avocat") {
         visible = href === "/administration/dossiers"
           || href === "/administration/mes-dossiers"
-          || href.startsWith("/administration/messages");
+          || href.startsWith("/administration/messages")
+          || href.startsWith("/administration/mes-messages");
         if (href === "/administration/dossiers") {
           link.href = "/administration/mes-dossiers";
           link.textContent = "▣ Mes dossiers";
+        }
+        if (href.startsWith("/administration/messages")) {
+          link.href = "/administration/mes-messages";
+          link.textContent = "✉ Ma messagerie";
         }
       } else if (role === "developpeur") {
         visible = href.startsWith("/administration/utilisateurs")
