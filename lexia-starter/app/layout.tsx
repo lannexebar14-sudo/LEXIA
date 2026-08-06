@@ -12,22 +12,6 @@ import "./payment-enforcement.css";
 import "./ui-corrections.css";
 import "./mobile-home-alignment.css";
 import "./h24-specialists.css";
-import "./founder-highlight.css";
-import "./founder-photo-fix.css";
-import "./founder-final.css";
-import "./founder-force.css";
-import "./founder-final-import.css";
-import "./founder-final-v2.css";
-import "./founder-final-v3.css";
-import "./founder-final-v4.css";
-import "./founder-final-v5.css";
-import "./founder-final-v6.css";
-import "./founder-final-v7.css";
-import "./founder-final-v8.css";
-import "./founder-final-v9.css";
-import "./founder-final-v10.css";
-import "./founder-final-v11.css";
-import "./founder-final-v12.css";
 import "./remove-founder-section.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
@@ -41,7 +25,6 @@ import RoleBasedAdminAccess from "./components/RoleBasedAdminAccess";
 import FastSessionRouter from "./components/FastSessionRouter";
 import CaseDraftSync from "./components/CaseDraftSync";
 import H24SpecialistsHighlight from "./components/H24SpecialistsHighlight";
-import FounderHighlight from "./components/FounderHighlight";
 
 export const metadata: Metadata = {
   title: "LEXIA — Assistance juridique",
@@ -74,7 +57,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <FastSessionRouter />
           <CaseDraftSync />
           <H24SpecialistsHighlight />
-          <FounderHighlight />
           <Suspense fallback={null}>{children}</Suspense>
           <AccessTimeoutRecovery />
           <AdminNavigationFix />
