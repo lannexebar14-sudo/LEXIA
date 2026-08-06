@@ -14,6 +14,7 @@ import "./mobile-home-alignment.css";
 import "./h24-specialists.css";
 import "./founder-highlight.css";
 import "./founder-photo-fix.css";
+import "./founder-photo-final.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
