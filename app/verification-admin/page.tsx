@@ -33,7 +33,6 @@ async function verifyCode(formData: FormData) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 8,
   });
 
   redirect("/administration");
@@ -99,7 +98,7 @@ export default async function VerificationAdminPage({
             ) : null}
             <button className="signup-submit">Accéder à l’administration</button>
           </form>
-          <p className="signup-security-note">🔒 Session administrateur sécurisée pendant 8 heures.</p>
+          <p className="signup-security-note">🔒 Le code sera redemandé à chaque nouvelle connexion administrateur.</p>
         </div>
       </section>
     </main>
