@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "../../../../lib/supabase/client";
 import ClientCaseConversation from "./ClientCaseConversation";
 import "../../dashboard.css";
@@ -56,8 +56,15 @@ type CaseService = {
   unit_amount: number;
 };
 
+type CheckoutResult = {
+  success?: boolean;
+  checkoutUrl?: string;
+  url?: string;
+  error?: string;
+};
+
 const statusLabels: Record<string, string> = {
-  submitted: "Transmis à l’administration",
+  submitted: "Paiement obligatoire",
   payment_pending: "Paiement en attente",
   paid: "Paiement confirmé",
   in_review: "Analyse en cours",
@@ -86,17 +93,33 @@ function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
 }
 
+async function functionErrorMessage(error: unknown, fallback: string) {
+  const candidate = error as { message?: string; context?: Response };
+  if (candidate?.context) {
+    try {
+      const body = await candidate.context.clone().json() as { error?: string };
+      if (body.error) return body.error;
+    } catch {
+      // La réponse technique n'est pas toujours lisible en JSON.
+    }
+  }
+  return candidate?.message && !candidate.message.includes("non-2xx") ? candidate.message : fallback;
+}
+
 export default function ClientCaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
+  const paymentAttempted = useRef(false);
   const [legalCase, setLegalCase] = useState<LegalCase | null>(null);
   const [events, setEvents] = useState<CaseEvent[]>([]);
   const [documents, setDocuments] = useState<CaseDocument[]>([]);
   const [services, setServices] = useState<CaseService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -154,6 +177,33 @@ export default function ClientCaseDetailPage() {
     return () => window.clearTimeout(timer);
   }, [legalCase, loading]);
 
+  useEffect(() => {
+    if (!legalCase || !["submitted", "payment_pending"].includes(legalCase.status) || paymentAttempted.current) return;
+    paymentAttempted.current = true;
+    void startStripePayment();
+  }, [legalCase?.id, legalCase?.status]);
+
+  async function startStripePayment() {
+    if (!legalCase || paymentLoading) return;
+    paymentAttempted.current = true;
+    setPaymentLoading(true);
+    setPaymentError("");
+
+    try {
+      const { data, error: checkoutError } = await supabase.functions.invoke<CheckoutResult>("create-stripe-checkout", {
+        body: { caseId: legalCase.id },
+      });
+      if (checkoutError) throw new Error(await functionErrorMessage(checkoutError, "Le paiement Stripe n’a pas pu être préparé."));
+      const checkoutUrl = data?.checkoutUrl || data?.url;
+      if (!data?.success || !checkoutUrl) throw new Error(data?.error || "Stripe n’a pas renvoyé de page de paiement.");
+      window.location.assign(checkoutUrl);
+    } catch (failure) {
+      paymentAttempted.current = false;
+      setPaymentError(failure instanceof Error ? failure.message : "Le paiement Stripe est momentanément indisponible.");
+      setPaymentLoading(false);
+    }
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/connexion");
@@ -169,6 +219,8 @@ export default function ClientCaseDetailPage() {
   }
 
   if (loading) return <main className="app-loading">Chargement du dossier…</main>;
+
+  const requiresPayment = Boolean(legalCase && ["submitted", "payment_pending"].includes(legalCase.status));
 
   return (
     <main className="client-app">
@@ -195,12 +247,29 @@ export default function ClientCaseDetailPage() {
           {legalCase && <span className={`case-status status-${legalCase.status}`}>{statusLabels[legalCase.status] || legalCase.status}</span>}
         </header>
 
-        {searchParams.get("depot") === "confirme" && <div className="case-success-banner"><b>Votre dossier a bien été transmis.</b><span>L’administration peut maintenant le consulter et vous serez averti à chaque évolution.</span></div>}
-        {searchParams.get("documents") === "incomplets" && <div className="case-warning-banner">Le dossier est enregistré, mais certains documents n’ont pas pu être transférés. Vous pourrez les ajouter de nouveau dans la messagerie ci-dessous.</div>}
+        {searchParams.get("depot") === "confirme" && requiresPayment && <div className="case-warning-banner"><b>Votre dossier est enregistré, mais il n’est pas encore transmis.</b><span>Le paiement Stripe est obligatoire. La transmission à l’équipe LEXIA aura lieu automatiquement après confirmation du règlement.</span></div>}
+        {searchParams.get("documents") === "incomplets" && <div className="case-warning-banner">Certains documents n’ont pas pu être transférés. Vous pourrez les ajouter après le paiement depuis la messagerie du dossier.</div>}
         {error && <div className="case-error-banner">{error}</div>}
 
-        {legalCase && (
+        {legalCase && requiresPayment && (
+          <section className="case-payment-gate">
+            <div className="case-payment-gate-icon">€</div>
+            <small>PAIEMENT STRIPE OBLIGATOIRE</small>
+            <h2>Finalisez le règlement pour transmettre votre dossier</h2>
+            <p>Votre demande et vos documents sont conservés dans votre espace sécurisé, mais l’administration LEXIA ne commencera aucun traitement avant la confirmation du paiement.</p>
+            <strong>{formatAmount(legalCase.total_amount)} TTC</strong>
+            {paymentError && <div className="case-payment-gate-error" role="alert">{paymentError}</div>}
+            <button type="button" onClick={() => void startStripePayment()} disabled={paymentLoading}>
+              {paymentLoading ? "Ouverture de Stripe…" : `Payer ${formatAmount(legalCase.total_amount)} et transmettre le dossier`}
+            </button>
+            <span>🔒 Paiement bancaire sécurisé par Stripe. Le dossier sera transmis uniquement après confirmation.</span>
+          </section>
+        )}
+
+        {legalCase && !requiresPayment && (
           <>
+            {legalCase.status === "paid" && <div className="case-success-banner"><b>Paiement confirmé.</b><span>Votre dossier est maintenant transmis à l’équipe LEXIA.</span></div>}
+
             <section className="case-detail-hero">
               <div>
                 <span>{categoryLabels[legalCase.category] || legalCase.category}</span>
@@ -210,7 +279,7 @@ export default function ClientCaseDetailPage() {
               <div className="case-hero-meta">
                 <article><small>Urgence</small><strong>{legalCase.urgency}</strong></article>
                 <article><small>Profil</small><strong>{legalCase.account_type}</strong></article>
-                <article><small>Montant prévu</small><strong>{formatAmount(legalCase.total_amount)}</strong></article>
+                <article><small>Montant réglé</small><strong>{formatAmount(legalCase.total_amount)}</strong></article>
                 <article><small>Documents</small><strong>{documents.length}</strong></article>
               </div>
             </section>
