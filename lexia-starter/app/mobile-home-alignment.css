@@ -1,27 +1,66 @@
 @media (max-width: 760px) {
   .announcement {
-    min-height: 44px !important;
-    padding: 0 10px !important;
+    position: relative !important;
+    z-index: 60 !important;
+    width: 100% !important;
+    min-height: 42px !important;
+    height: 42px !important;
+    padding: 0 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-align: center !important;
-    font-size: clamp(10px, 3vw, 12px) !important;
     line-height: 1 !important;
   }
 
   .announcement span {
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
+  }
+
+  .announcement span::before {
+    content: "●";
+    margin-right: 8px;
+    color: #65a987;
+    font-size: 9px;
+  }
+
+  .announcement span::after {
+    content: "Assistance juridique en ligne";
+    color: rgba(255,255,255,.88);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .15px;
+    white-space: nowrap;
   }
 
   .announcement a {
     display: none !important;
+  }
+
+  .public-header {
+    top: 0 !important;
+  }
+
+  .public-nav {
+    min-height: 72px !important;
+  }
+
+  .public-actions .public-button-dark {
+    min-height: 48px !important;
+    padding: 0 17px !important;
+    font-size: 13px !important;
+    border-radius: 14px !important;
   }
 
   .hero-proof {
@@ -36,17 +75,24 @@
   .hero-proof > div + div {
     width: 100% !important;
     min-width: 0 !important;
-    padding: 0 10px !important;
+    padding: 0 8px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
     text-align: center !important;
     border-left: 1px solid #ddd8cd !important;
+    border-top: 0 !important;
+    margin-top: 0 !important;
   }
 
   .hero-proof > div:first-child {
     border-left: 0 !important;
+  }
+
+  .hero-proof > div:nth-child(3) {
+    grid-column: auto !important;
+    padding-top: 0 !important;
   }
 
   .hero-proof strong,
