@@ -1,0 +1,10 @@
+import { company, LegalPage, Section } from "../components/LegalPage";
+
+export default function Page(){return <LegalPage title="Rétractation et remboursement" intro="Cette page explique les situations dans lesquelles un remboursement peut être demandé pour une prestation LEXIA.">
+<Section title="1. Droit de rétractation"><p>Le consommateur dispose en principe de quatorze jours à compter de la conclusion du contrat à distance. Il peut exercer ce droit en écrivant à <a href={`mailto:${company.email}`}>{company.email}</a> avec son identité, l’adresse e-mail du compte et la commande concernée.</p></Section>
+<Section title="2. Commencement anticipé"><p>Lorsque l’utilisateur demande expressément que la prestation commence avant la fin du délai de rétractation, un montant proportionnel à la partie déjà exécutée peut rester dû. Si la prestation est entièrement exécutée après accord exprès et renoncement valable, le droit de rétractation peut être perdu.</p></Section>
+<Section title="3. Cas examinés"><p>Une demande de remboursement peut notamment être examinée en cas de double débit, paiement sans création de dossier, indisponibilité durable empêchant toute prestation, ou service manifestement non fourni. Une simple insatisfaction sur l’issue d’un litige ne suffit pas lorsque la prestation commandée a été correctement exécutée.</p></Section>
+<Section title="4. Prestations d’avocat"><p>Les honoraires et remboursements liés à une prestation réalisée directement par un avocat relèvent de la convention conclue avec ce professionnel et ne sont pas automatiquement remboursés par JEANECO.</p></Section>
+<Section title="5. Traitement"><p>La demande est examinée au regard de l’état réel du dossier, des échanges, des actions déjà réalisées et du paiement. Lorsqu’un remboursement est accepté, il est effectué sur le moyen de paiement initial dans les délais bancaires habituels.</p></Section>
+<Section title="6. Réclamation"><p>Adressez toute demande à <a href={`mailto:${company.email}`}>{company.email}</a>. Indiquez la référence du dossier et joignez, si nécessaire, le justificatif du débit concerné.</p></Section>
+</LegalPage>}
