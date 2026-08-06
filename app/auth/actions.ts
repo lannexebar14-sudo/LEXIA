@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAdmin2FACookieName } from "@/lib/admin-2fa";
 
 function message(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -28,7 +30,12 @@ export async function signIn(formData: FormData) {
     .eq("id", data.user.id)
     .single();
 
-  redirect(profile?.role === "admin" ? "/administration" : "/tableau-de-bord");
+  if (profile?.role === "admin") {
+    cookies().delete(getAdmin2FACookieName());
+    redirect("/administration");
+  }
+
+  redirect("/tableau-de-bord");
 }
 
 export async function signUp(formData: FormData) {
@@ -77,5 +84,6 @@ export async function signUp(formData: FormData) {
 export async function signOut() {
   const supabase = createClient();
   await supabase.auth.signOut();
+  cookies().delete(getAdmin2FACookieName());
   redirect("/");
 }
