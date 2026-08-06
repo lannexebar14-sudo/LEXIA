@@ -1,0 +1,4 @@
+.h24-highlight{margin:24px 0 4px;padding:16px 18px;display:grid;gap:6px;border:1px solid rgba(197,157,78,.38);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(245,236,215,.9));box-shadow:0 12px 30px rgba(12,35,64,.08)}
+.h24-highlight strong{color:#0b1f35;font-size:12px;font-weight:950;letter-spacing:1.2px}
+.h24-highlight span{color:#5f6c7c;font-size:14px;line-height:1.55}
+@media(max-width:760px){.h24-highlight{margin:20px 0 4px;padding:14px 15px;text-align:center}.h24-highlight strong{font-size:11px}.h24-highlight span{font-size:13px}.hero-label{max-width:100%;font-size:10px!important;letter-spacing:.75px!important;white-space:nowrap}.announcement span{font-weight:800!important}}
