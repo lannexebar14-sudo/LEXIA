@@ -1,0 +1,1 @@
+Le correctif visuel final du bloc fondateur utilise founder-photo-final.css.
