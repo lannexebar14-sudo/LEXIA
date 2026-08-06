@@ -1,0 +1,10 @@
+import { LegalPage, Section } from "../components/LegalPage";
+
+export default function Page(){return <LegalPage title="Politique de cookies" intro="LEXIA utilise uniquement les traceurs nécessaires au service et soumet les traceurs non essentiels au choix de l’utilisateur.">
+<Section title="1. Définition"><p>Un cookie est un petit fichier enregistré sur l’appareil lors de la consultation d’un service en ligne. Il peut permettre de maintenir une session, mémoriser un choix ou mesurer l’utilisation du site.</p></Section>
+<Section title="2. Cookies nécessaires"><p>LEXIA peut utiliser des cookies strictement nécessaires à l’authentification, à la sécurité, à la prévention de la fraude, à la conservation du panier ou du parcours de dossier et au fonctionnement de l’interface. Ils ne sont pas utilisés à des fins publicitaires.</p></Section>
+<Section title="3. Cookies soumis au consentement"><p>Les traceurs de mesure d’audience non exemptés, de personnalisation avancée, de publicité ou provenant de réseaux sociaux ne peuvent être activés qu’après consentement. Le refus doit être aussi simple que l’acceptation.</p></Section>
+<Section title="4. Prestataires"><p>Les services techniques susceptibles de déposer ou lire des éléments de stockage comprennent notamment Supabase pour la session et l’authentification, Vercel pour la diffusion du site et Stripe lors du paiement. Leurs usages sont limités à la fourniture et à la sécurisation du service.</p></Section>
+<Section title="5. Durée et choix"><p>Les cookies sont conservés pendant une durée proportionnée à leur finalité. L’utilisateur peut modifier ses choix depuis le gestionnaire de consentement lorsqu’un traceur non essentiel est activé, ou depuis les réglages de son navigateur. Le blocage des cookies nécessaires peut empêcher la connexion ou le dépôt d’un dossier.</p></Section>
+<Section title="6. Contact"><p>Pour toute question relative aux cookies : <a href="mailto:contact@lexiafrance.fr">contact@lexiafrance.fr</a>.</p></Section>
+</LegalPage>}
