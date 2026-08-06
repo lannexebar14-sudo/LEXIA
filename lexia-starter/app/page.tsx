@@ -100,6 +100,24 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="founder-highlight" data-lexia-founder="true">
+        <div className="public-container founder-card">
+          <div className="founder-photo" role="img" aria-label="Valentin Thiery, créateur et fondateur de LEXIA" />
+          <div className="founder-copy">
+            <span>CRÉÉ ET FONDÉ PAR</span>
+            <h2>Valentin Thiery</h2>
+            <p>LEXIA est née d’un constat simple : rendre l’accès au droit plus rapide, plus humain et plus accessible.</p>
+            <p>Développée avec des avocats, juristes, développeurs et spécialistes du numérique, la plateforme accompagne particuliers et professionnels partout en France.</p>
+            <strong>Créateur et fondateur de LEXIA</strong>
+          </div>
+          <div className="founder-facts">
+            <div><b>49 000+</b><span>avocats référencés</span></div>
+            <div><b>24h/24</b><span>7 jours sur 7</span></div>
+            <div><b>100 %</b><span>confidentiel</span></div>
+          </div>
+        </div>
+      </section>
+
       <section className="public-section process-section" id="fonctionnement">
         <div className="public-container">
           <div className="section-heading centered">
