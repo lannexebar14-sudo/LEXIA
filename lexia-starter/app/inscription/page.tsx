@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
 
+type RegistrationResult = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+};
+
+async function functionErrorMessage(error: unknown, fallback: string) {
+  const candidate = error as { message?: string; context?: Response };
+  if (candidate?.context) {
+    try {
+      const body = await candidate.context.clone().json() as { error?: string };
+      if (body.error) return body.error;
+    } catch {
+      // Certaines réponses techniques ne sont pas lisibles en JSON.
+    }
+  }
+  return candidate?.message && !candidate.message.includes("non-2xx") ? candidate.message : fallback;
+}
+
 export default function InscriptionPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [accountType, setAccountType] = useState<"particulier" | "professionnel">("particulier");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -13,12 +32,15 @@ export default function InscriptionPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loading) return;
+
+    const formElement = event.currentTarget;
     setLoading(true);
     setMessage("");
     setError("");
 
-    const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") || "").trim();
+    const form = new FormData(formElement);
+    const email = String(form.get("email") || "").trim().toLowerCase();
     const password = String(form.get("password") || "");
     const fullName = String(form.get("fullName") || "").trim();
     const companyName = String(form.get("companyName") || "").trim();
@@ -36,25 +58,28 @@ export default function InscriptionPage() {
       return;
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/connexion?confirmation=ok`,
-        data: {
-          full_name: fullName,
-          account_type: accountType,
-          company_name: accountType === "professionnel" ? companyName : "",
+    try {
+      const { data, error: registrationError } = await supabase.functions.invoke<RegistrationResult>("register-client", {
+        body: {
+          email,
+          password,
+          fullName,
+          accountType,
+          companyName: accountType === "professionnel" ? companyName : "",
           siret: accountType === "professionnel" ? siret : "",
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
-    } else {
-      setMessage("Votre compte est créé. Consultez votre boîte e-mail pour confirmer votre inscription.");
-      event.currentTarget.reset();
+      if (registrationError) {
+        throw new Error(await functionErrorMessage(registrationError, "L’inscription n’a pas pu être finalisée."));
+      }
+      if (!data?.success) throw new Error(data?.error || "L’inscription n’a pas pu être finalisée.");
+
+      setMessage(data.message || "Votre compte est créé. Consultez votre boîte e-mail pour confirmer votre adresse.");
+      formElement.reset();
+      setAccountType("particulier");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "L’inscription est momentanément indisponible.");
     }
 
     setLoading(false);
@@ -98,11 +123,11 @@ export default function InscriptionPage() {
           </div>
 
           <div className="signup-account-types">
-            <button type="button" className={accountType === "particulier" ? "selected" : ""} onClick={() => setAccountType("particulier")}>
+            <button type="button" className={accountType === "particulier" ? "selected" : ""} onClick={() => setAccountType("particulier")} disabled={loading}>
               <span className="signup-type-icon">👤</span>
               <span><strong>Particulier</strong><small>Ouverture de dossier : 13 €</small></span>
             </button>
-            <button type="button" className={accountType === "professionnel" ? "selected" : ""} onClick={() => setAccountType("professionnel")}>
+            <button type="button" className={accountType === "professionnel" ? "selected" : ""} onClick={() => setAccountType("professionnel")} disabled={loading}>
               <span className="signup-type-icon">🏢</span>
               <span><strong>Professionnel</strong><small>Ouverture de dossier : 29 €</small></span>
             </button>
@@ -111,42 +136,42 @@ export default function InscriptionPage() {
           <form onSubmit={handleSubmit} className="signup-form">
             <label>
               <span>Nom et prénom</span>
-              <input name="fullName" type="text" required placeholder="Votre identité complète" />
+              <input name="fullName" type="text" required placeholder="Votre identité complète" disabled={loading} />
             </label>
 
             {accountType === "professionnel" && (
               <div className="signup-two-columns">
                 <label>
                   <span>Nom de l’entreprise</span>
-                  <input name="companyName" type="text" required placeholder="Raison sociale" />
+                  <input name="companyName" type="text" required placeholder="Raison sociale" disabled={loading} />
                 </label>
                 <label>
                   <span>Numéro SIRET</span>
-                  <input name="siret" type="text" inputMode="numeric" required maxLength={14} placeholder="14 chiffres" />
+                  <input name="siret" type="text" inputMode="numeric" required maxLength={14} placeholder="14 chiffres" disabled={loading} />
                 </label>
               </div>
             )}
 
             <label>
               <span>Adresse e-mail</span>
-              <input name="email" type="email" required autoComplete="email" placeholder="nom@exemple.fr" />
+              <input name="email" type="email" required autoComplete="email" placeholder="nom@exemple.fr" disabled={loading} />
             </label>
 
             <label>
               <span>Mot de passe</span>
-              <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="8 caractères minimum" />
+              <input name="password" type="password" required minLength={8} autoComplete="new-password" placeholder="8 caractères minimum" disabled={loading} />
             </label>
 
             <label className="signup-consent">
-              <input type="checkbox" required />
+              <input type="checkbox" required disabled={loading} />
               <span>J’accepte les conditions d’utilisation et la politique de confidentialité.</span>
             </label>
 
-            {error && <div className="signup-alert signup-error">{error}</div>}
-            {message && <div className="signup-alert signup-success">{message}</div>}
+            {error && <div className="signup-alert signup-error" role="alert">{error}</div>}
+            {message && <div className="signup-alert signup-success" role="status">{message}</div>}
 
             <button className="signup-submit" disabled={loading}>
-              {loading ? "Création du compte..." : "Créer mon espace sécurisé"}
+              {loading ? "Envoi du lien sécurisé…" : "Créer mon espace sécurisé"}
             </button>
           </form>
 
