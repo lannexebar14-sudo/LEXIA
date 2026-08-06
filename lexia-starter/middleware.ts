@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { getAdmin2FACookieName, verifyAdmin2FAToken } from "./lib/admin-2fa";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ehmxjwmwwirvnvdakahx.supabase.co";
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_rQ0_cgEKffn_XcmhQ56mpA_411CYGEc";
@@ -21,32 +22,25 @@ function roleDestination(role: string | null | undefined) {
 
 function isRoleAllowed(role: string | null | undefined, pathname: string) {
   if (role === "admin") return true;
-
   if (role === "juriste" || role === "avocat") {
-    return pathname.startsWith("/administration/mes-dossiers")
-      || pathname.startsWith("/administration/mes-messages");
+    return pathname.startsWith("/administration/mes-dossiers") || pathname.startsWith("/administration/mes-messages");
   }
-
   if (role === "developpeur") {
-    return pathname.startsWith("/administration/utilisateurs")
-      || pathname.startsWith("/administration/developpement");
+    return pathname.startsWith("/administration/utilisateurs") || pathname.startsWith("/administration/developpement");
   }
-
   return false;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // LEXIA est ouverte au public : aucune maintenance globale ne bloque les clients.
+  // LEXIA reste ouverte au public : seules les routes d'administration sont protégées.
   if (!pathname.startsWith("/administration")) return NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
+      getAll() { return request.cookies.getAll(); },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
@@ -58,6 +52,9 @@ export async function middleware(request: NextRequest) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return NextResponse.redirect(loginRedirect(request));
 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.redirect(loginRedirect(request));
+
   const { data, error } = await supabase.rpc("get_my_access_context").maybeSingle();
   const role = !error ? (data as AccessContext | null)?.role : null;
 
@@ -66,6 +63,17 @@ export async function middleware(request: NextRequest) {
     destination.pathname = roleDestination(role);
     destination.search = "";
     return NextResponse.redirect(destination);
+  }
+
+  if (role === "admin") {
+    const token = request.cookies.get(getAdmin2FACookieName())?.value;
+    const verified = await verifyAdmin2FAToken(token, user.id, session.access_token);
+    if (!verified) {
+      const verification = request.nextUrl.clone();
+      verification.pathname = "/verification-admin";
+      verification.search = "";
+      return NextResponse.redirect(verification);
+    }
   }
 
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
