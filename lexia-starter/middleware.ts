@@ -1,52 +1,78 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ehmxjwmwwirvnvdakahx.supabase.co";
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_rQ0_cgEKffn_XcmhQ56mpA_411CYGEc";
 
-function isAllowedDuringMaintenance(pathname: string) {
-  return pathname.startsWith("/administration")
-    || pathname.startsWith("/connexion")
-    || pathname.startsWith("/maintenance")
-    || pathname.startsWith("/api")
-    || pathname.startsWith("/_next")
-    || pathname === "/sw.js"
-    || pathname === "/manifest.webmanifest"
-    || pathname.startsWith("/icon")
-    || pathname.startsWith("/apple-icon")
-    || pathname.includes(".");
+type AccessContext = { role?: string | null };
+
+function loginRedirect(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/connexion";
+  url.search = `?redirect=${encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)}`;
+  return url;
+}
+
+function roleDestination(role: string | null | undefined) {
+  if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
+  if (role === "developpeur") return "/administration/developpement";
+  return "/tableau-de-bord";
+}
+
+function isRoleAllowed(role: string | null | undefined, pathname: string) {
+  if (role === "admin") return true;
+
+  if (role === "juriste" || role === "avocat") {
+    return pathname.startsWith("/administration/mes-dossiers")
+      || pathname.startsWith("/administration/mes-messages");
+  }
+
+  if (role === "developpeur") {
+    return pathname.startsWith("/administration/utilisateurs")
+      || pathname.startsWith("/administration/developpement");
+  }
+
+  return false;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (isAllowedDuringMaintenance(pathname)) return NextResponse.next();
 
-  try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/platform_settings?id=eq.main&select=maintenance_mode`,
-      {
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          Accept: "application/json",
-        },
-        cache: "no-store",
+  // LEXIA est ouverte au public : aucune maintenance globale ne bloque les clients.
+  if (!pathname.startsWith("/administration")) return NextResponse.next();
+
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
 
-    if (!response.ok) return NextResponse.next();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return NextResponse.redirect(loginRedirect(request));
 
-    const rows = await response.json() as Array<{ maintenance_mode?: boolean }>;
-    if (!rows[0]?.maintenance_mode) return NextResponse.next();
+  const { data, error } = await supabase.rpc("get_my_access_context").maybeSingle();
+  const role = !error ? (data as AccessContext | null)?.role : null;
 
-    const maintenanceUrl = request.nextUrl.clone();
-    maintenanceUrl.pathname = "/maintenance";
-    maintenanceUrl.search = "";
-    return NextResponse.rewrite(maintenanceUrl);
-  } catch {
-    return NextResponse.next();
+  if (!isRoleAllowed(role, pathname)) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = roleDestination(role);
+    destination.search = "";
+    return NextResponse.redirect(destination);
   }
+
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/administration/:path*"],
 };
