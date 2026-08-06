@@ -11,6 +11,7 @@ import "./nouveau-dossier/mobile-header-fix.css";
 import "./payment-enforcement.css";
 import "./ui-corrections.css";
 import "./mobile-home-alignment.css";
+import "./h24-specialists.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
 import MobilePlatformBadge from "./components/MobilePlatformBadge";
@@ -22,6 +23,7 @@ import ClientCaseConversationMount from "./components/ClientCaseConversationMoun
 import RoleBasedAdminAccess from "./components/RoleBasedAdminAccess";
 import FastSessionRouter from "./components/FastSessionRouter";
 import CaseDraftSync from "./components/CaseDraftSync";
+import H24SpecialistsHighlight from "./components/H24SpecialistsHighlight";
 
 export const metadata: Metadata = {
   title: "LEXIA — Assistance juridique",
@@ -53,6 +55,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <MaintenanceGateV2>
           <FastSessionRouter />
           <CaseDraftSync />
+          <H24SpecialistsHighlight />
           <Suspense fallback={null}>{children}</Suspense>
           <AccessTimeoutRecovery />
           <AdminNavigationFix />
