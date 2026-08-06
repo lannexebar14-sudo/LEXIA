@@ -18,7 +18,14 @@ function safeRequestedRedirect() {
 }
 
 function destinationForRole(role: AppRole, requestedRedirect: string | null) {
-  if (role === "admin") return requestedRedirect || "/administration";
+  // Un administrateur doit toujours passer par l'écran du code 180319
+  // immédiatement après la validation de son mot de passe.
+  if (role === "admin") {
+    const destination = requestedRedirect?.startsWith("/administration")
+      ? requestedRedirect
+      : "/administration";
+    return `/verification-admin?redirect=${encodeURIComponent(destination)}`;
+  }
   if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
   if (role === "developpeur") return "/administration/utilisateurs";
   return "/tableau-de-bord";
@@ -94,8 +101,6 @@ export default function ConnexionPage() {
       return;
     }
 
-    // La session est valide : le tableau de bord reprend automatiquement
-    // la vérification si le réseau met plus de temps que prévu.
     window.sessionStorage.removeItem(ROLE_CACHE_KEY);
     window.location.replace("/tableau-de-bord");
   }
