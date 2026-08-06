@@ -1,129 +1,14 @@
-import Link from "next/link";
-import "../legal.css";
+import { company, LegalPage, Section } from "../components/LegalPage";
 
-export default function ConfidentialitePage() {
-  return (
-    <main className="legal-page">
-      <header className="legal-header">
-        <nav className="legal-nav">
-          <Link href="/" className="legal-logo">LEXIA<span>.</span></Link>
-          <div className="legal-nav-links">
-            <Link href="/confidentialite">Confidentialité</Link>
-            <Link href="/conditions">Conditions générales</Link>
-            <Link href="/mentions-legales">Mentions légales</Link>
-          </div>
-        </nav>
-      </header>
-
-      <section className="legal-hero">
-        <div className="legal-container">
-          <span className="legal-eyebrow">DONNÉES PERSONNELLES</span>
-          <h1>Politique de confidentialité</h1>
-          <p>Cette politique explique quelles données LEXIA collecte, pourquoi elles sont utilisées, combien de temps elles sont conservées et comment exercer vos droits.</p>
-          <div className="legal-alert">Version de travail à faire valider avant l’ouverture commerciale. Les coordonnées définitives du responsable de traitement et du délégué à la protection des données doivent être complétées.</div>
-        </div>
-      </section>
-
-      <section className="legal-container legal-content">
-        <article className="legal-card">
-          <h2>1. Responsable du traitement</h2>
-          <p>Le responsable du traitement est l’entité qui exploite la plateforme LEXIA.</p>
-          <div className="legal-table">
-            <div className="legal-row"><span>Dénomination</span><span className="legal-placeholder">À compléter avant lancement</span></div>
-            <div className="legal-row"><span>Adresse</span><span className="legal-placeholder">À compléter avant lancement</span></div>
-            <div className="legal-row"><span>E-mail vie privée</span><span>confidentialite@lexia.fr ou adresse définitive à compléter</span></div>
-            <div className="legal-row"><span>DPO / référent RGPD</span><span className="legal-placeholder">À désigner ou préciser</span></div>
-          </div>
-        </article>
-
-        <article className="legal-card">
-          <h2>2. Données collectées</h2>
-          <p>LEXIA peut traiter les catégories de données suivantes :</p>
-          <ul>
-            <li>données d’identité et de contact : nom, prénom, e-mail, téléphone, adresse ;</li>
-            <li>données professionnelles : société, fonction, SIRET et coordonnées professionnelles ;</li>
-            <li>données de compte : identifiant, rôle, historique de connexion et préférences ;</li>
-            <li>données relatives aux dossiers : faits exposés, objectifs, niveau d’urgence, partie adverse, échanges et statut du dossier ;</li>
-            <li>documents transmis : contrats, courriers, factures, décisions, photographies, captures et autres justificatifs ;</li>
-            <li>données de paiement et de facturation, hors données bancaires complètes traitées par le prestataire de paiement ;</li>
-            <li>données techniques : adresse IP, navigateur, appareil, journaux de sécurité et cookies ;</li>
-            <li>messages envoyés depuis la bulle d’assistance et la messagerie du compte.</li>
-          </ul>
-          <p>Certains dossiers peuvent contenir des données particulièrement sensibles. L’utilisateur ne doit transmettre que les informations strictement nécessaires au traitement de sa demande.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>3. Finalités et bases légales</h2>
-          <div className="legal-table">
-            <div className="legal-row"><span>Création et gestion du compte</span><span>Exécution du contrat et mesures précontractuelles</span></div>
-            <div className="legal-row"><span>Analyse et suivi des demandes</span><span>Exécution du contrat</span></div>
-            <div className="legal-row"><span>Messagerie et assistance</span><span>Exécution du contrat ou intérêt légitime à répondre aux visiteurs</span></div>
-            <div className="legal-row"><span>Paiement et facturation</span><span>Exécution du contrat et obligations légales</span></div>
-            <div className="legal-row"><span>Sécurité, prévention des abus</span><span>Intérêt légitime et obligations légales</span></div>
-            <div className="legal-row"><span>Communications commerciales</span><span>Consentement lorsque celui-ci est requis</span></div>
-            <div className="legal-row"><span>Mesure d’audience non essentielle</span><span>Consentement</span></div>
-          </div>
-        </article>
-
-        <article className="legal-card">
-          <h2>4. Destinataires</h2>
-          <p>Les données sont accessibles uniquement aux personnes qui en ont besoin dans le cadre de leurs fonctions :</p>
-          <ul>
-            <li>administrateurs et personnel habilité de LEXIA ;</li>
-            <li>juristes ou intervenants autorisés affectés au dossier ;</li>
-            <li>avocats partenaires, uniquement avec l’accord du client ou lorsque cela est nécessaire à sa demande ;</li>
-            <li>prestataires techniques : hébergement, base de données, authentification, paiement, e-mail et maintenance ;</li>
-            <li>autorités légalement habilitées, sur demande conforme au droit applicable.</li>
-          </ul>
-          <p>LEXIA ne vend pas les données personnelles de ses utilisateurs.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>5. Hébergement et transferts</h2>
-          <p>La plateforme utilise notamment Vercel pour l’hébergement applicatif, Supabase pour l’authentification et la base de données, et GitHub pour le code source. Les régions d’hébergement et garanties contractuelles devront être configurées et documentées avant la mise en production commerciale.</p>
-          <p>Lorsqu’un prestataire traite des données en dehors de l’Espace économique européen, LEXIA met en place un mécanisme reconnu par le RGPD, tel qu’une décision d’adéquation ou des clauses contractuelles types.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>6. Durées de conservation</h2>
-          <ul>
-            <li>compte actif : pendant toute la durée d’utilisation du service ;</li>
-            <li>dossiers et échanges : pendant la durée nécessaire au service, puis archivage selon les délais légaux applicables ;</li>
-            <li>documents comptables et factures : durée légale de conservation ;</li>
-            <li>prospects et demandes sans contrat : durée limitée à compter du dernier contact ;</li>
-            <li>journaux de sécurité : durée proportionnée aux besoins de sécurité ;</li>
-            <li>cookies : durée définie dans le gestionnaire de consentement.</li>
-          </ul>
-          <p>Les durées définitives devront être inscrites dans le registre RGPD de LEXIA avant le lancement.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>7. Vos droits</h2>
-          <p>Selon la situation, vous pouvez exercer vos droits d’accès, de rectification, d’effacement, de limitation, d’opposition, de portabilité et de retrait du consentement.</p>
-          <p>La demande peut être adressée à <strong>confidentialite@lexia.fr</strong>, sous réserve de remplacement par l’adresse définitive. Une preuve d’identité pourra être demandée uniquement lorsque cela est nécessaire pour vérifier l’identité du demandeur.</p>
-          <p>Vous pouvez également déposer une réclamation auprès de la CNIL.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>8. Cookies</h2>
-          <p>Les cookies strictement nécessaires au fonctionnement, à la sécurité et à l’authentification peuvent être déposés sans consentement lorsqu’ils répondent aux critères légaux. Les cookies de mesure d’audience, de personnalisation ou de publicité non essentiels ne sont déposés qu’après votre choix.</p>
-          <p>Un gestionnaire de consentement devra permettre d’accepter, de refuser ou de modifier les préférences à tout moment.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>9. Sécurité</h2>
-          <p>LEXIA met en œuvre des mesures techniques et organisationnelles adaptées : contrôle des accès, authentification, journalisation, chiffrement des communications, sauvegardes, séparation des rôles, limitation des accès aux dossiers et procédures de gestion des incidents.</p>
-          <p>Aucun système n’étant totalement invulnérable, les utilisateurs doivent protéger leur mot de passe et signaler toute activité suspecte.</p>
-        </article>
-
-        <article className="legal-card">
-          <h2>10. Mise à jour</h2>
-          <p>Cette politique peut être modifiée pour tenir compte des évolutions du service, des prestataires ou du droit applicable. La date de dernière mise à jour sera affichée sur cette page.</p>
-          <p><strong>Dernière mise à jour :</strong> 4 août 2026.</p>
-        </article>
-      </section>
-
-      <footer className="legal-footer"><div className="legal-footer-inner"><span>LEXIA — Assistance juridique en ligne</span><Link href="/">Retour à l’accueil</Link></div></footer>
-    </main>
-  );
-}
+export default function Page(){return <LegalPage title="Politique de confidentialité" intro="Cette politique décrit les traitements de données réalisés par JEANECO dans le cadre du service LEXIA.">
+<Section title="1. Responsable du traitement"><p><strong>{company.name}</strong>, {company.form}, siège social {company.address}, est responsable du traitement. Contact vie privée : <a href={`mailto:${company.email}`}>{company.email}</a>.</p></Section>
+<Section title="2. Données traitées"><ul><li>identité, coordonnées et informations professionnelles ;</li><li>données de compte et de connexion ;</li><li>faits, messages, objectifs, parties concernées et statut des dossiers ;</li><li>documents et pièces transmis ;</li><li>données de facturation et références de paiement ;</li><li>journaux techniques, adresse IP, appareil et éléments de sécurité.</li></ul><p>Les dossiers peuvent contenir des données sensibles. L’utilisateur doit limiter ses transmissions aux informations nécessaires.</p></Section>
+<Section title="3. Finalités et bases légales"><ul><li>création du compte et traitement du dossier : exécution du contrat ou mesures précontractuelles ;</li><li>paiement, facturation et comptabilité : contrat et obligations légales ;</li><li>sécurité, prévention des abus et preuve : intérêt légitime et obligations légales ;</li><li>prospection et cookies non essentiels : consentement lorsqu’il est requis.</li></ul></Section>
+<Section title="4. Destinataires"><p>Les données sont accessibles aux personnes habilitées de JEANECO, aux juristes ou professionnels affectés, aux avocats lorsque l’orientation est demandée ou acceptée, et aux prestataires techniques nécessaires : Supabase, Vercel, Stripe, Resend et OVHcloud. Elles peuvent être communiquées aux autorités lorsque la loi l’exige.</p></Section>
+<Section title="5. Transferts internationaux"><p>Certains prestataires peuvent traiter des données hors de l’Espace économique européen. JEANECO s’appuie alors sur un mécanisme reconnu par le RGPD, notamment une décision d’adéquation ou des clauses contractuelles types.</p></Section>
+<Section title="6. Conservation"><ul><li>comptes : durée de la relation, puis archivage limité ;</li><li>dossiers et échanges : durée nécessaire à la prestation puis aux obligations de preuve ;</li><li>factures et pièces comptables : durée légale ;</li><li>journaux de sécurité : durée proportionnée à la prévention des incidents ;</li><li>prospection : jusqu’au retrait du consentement ou à l’expiration de la durée applicable.</li></ul></Section>
+<Section title="7. Vos droits"><p>Vous pouvez demander l’accès, la rectification, l’effacement, la limitation, l’opposition, la portabilité et retirer votre consentement. Écrivez à <a href={`mailto:${company.email}`}>{company.email}</a>. Une preuve d’identité peut être demandée en cas de doute raisonnable. Vous pouvez aussi saisir la CNIL.</p></Section>
+<Section title="8. Sécurité"><p>LEXIA applique des contrôles d’accès, une authentification, le chiffrement des communications, une journalisation, des sauvegardes et une séparation des rôles. Aucun système n’étant totalement invulnérable, l’utilisateur doit protéger son mot de passe et signaler toute activité suspecte.</p></Section>
+<Section title="9. Cookies"><p>Les cookies nécessaires à l’authentification, à la sécurité et au fonctionnement peuvent être déposés sans consentement. Les cookies non essentiels ne sont activés qu’après choix de l’utilisateur. Voir la page <a href="/cookies">Cookies</a>.</p></Section>
+<Section title="10. Mise à jour"><p>Cette politique peut évoluer selon le service, les prestataires ou la réglementation. La version publiée sur le site est la version applicable.</p></Section>
+</LegalPage>}
