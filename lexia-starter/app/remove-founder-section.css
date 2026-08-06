@@ -1,0 +1,4 @@
+.founder-highlight,
+[data-lexia-founder="true"] {
+  display: none !important;
+}
