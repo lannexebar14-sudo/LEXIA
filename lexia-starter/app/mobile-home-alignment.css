@@ -64,49 +64,6 @@
   }
 
   .hero-proof {
-    width: 100% !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    align-items: stretch !important;
-    justify-items: center !important;
-    gap: 0 !important;
-  }
-
-  .hero-proof > div,
-  .hero-proof > div + div {
-    width: 100% !important;
-    min-width: 0 !important;
-    padding: 0 8px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: center !important;
-    border-left: 1px solid #ddd8cd !important;
-    border-top: 0 !important;
-    margin-top: 0 !important;
-  }
-
-  .hero-proof > div:first-child {
-    border-left: 0 !important;
-  }
-
-  .hero-proof > div:nth-child(3) {
-    grid-column: auto !important;
-    padding-top: 0 !important;
-  }
-
-  .hero-proof strong,
-  .hero-proof span {
-    width: 100% !important;
-    text-align: center !important;
-  }
-
-  .hero-proof strong {
-    font-size: clamp(25px, 8vw, 34px) !important;
-  }
-
-  .hero-proof span {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
+    display: none !important;
   }
 }
