@@ -26,10 +26,56 @@ import FastSessionRouter from "./components/FastSessionRouter";
 import CaseDraftSync from "./components/CaseDraftSync";
 import H24SpecialistsHighlight from "./components/H24SpecialistsHighlight";
 
+const SITE_URL = "https://lexiafrance.fr";
+
 export const metadata: Metadata = {
-  title: "LEXIA — Assistance juridique",
-  description: "Déposez votre dossier, échangez avec un professionnel et avancez dans vos démarches.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "LEXIA | Assistance juridique en ligne 24h/24",
+    template: "%s | LEXIA",
+  },
+  description: "LEXIA est une plateforme française d'assistance juridique en ligne pour particuliers et professionnels : dépôt de dossier, documents, messagerie et orientation adaptée.",
+  keywords: [
+    "assistance juridique en ligne",
+    "aide juridique",
+    "conseil juridique",
+    "juriste en ligne",
+    "litige logement",
+    "droit du travail",
+    "droit de la famille",
+    "litige consommation",
+    "recouvrement facture",
+    "LEXIA",
+  ],
   applicationName: "LEXIA",
+  category: "legal services",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: "/",
+    siteName: "LEXIA",
+    title: "LEXIA | Assistance juridique en ligne",
+    description: "Décrivez votre situation, transmettez vos documents et échangez depuis un espace sécurisé.",
+  },
+  twitter: {
+    card: "summary",
+    title: "LEXIA | Assistance juridique en ligne",
+    description: "Assistance juridique en ligne pour particuliers et professionnels.",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -49,10 +95,34 @@ export const viewport: Viewport = {
   themeColor: "#091d33",
 };
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "LEXIA",
+  url: SITE_URL,
+  email: "contact@lexiafrance.fr",
+  description: "Plateforme française d'assistance juridique en ligne pour particuliers et professionnels.",
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "LEXIA",
+  url: SITE_URL,
+  inLanguage: "fr-FR",
+  publisher: {
+    "@type": "Organization",
+    name: "LEXIA",
+    url: SITE_URL,
+  },
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
         <MaintenanceGateV2>
           <FastSessionRouter />
           <CaseDraftSync />
