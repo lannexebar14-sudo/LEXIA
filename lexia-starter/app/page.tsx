@@ -24,6 +24,7 @@ export default function HomePage() {
           <nav className="public-links" aria-label="Navigation principale">
             <Link href="#fonctionnement">Fonctionnement</Link>
             <Link href="#domaines">Domaines</Link>
+            <Link href="/conseils-juridiques">Guides</Link>
             <Link href="#tarifs">Tarifs</Link>
             <Link href="#confiance">Pourquoi LEXIA</Link>
           </nav>
@@ -100,24 +101,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="founder-highlight" data-lexia-founder="true">
-        <div className="public-container founder-card">
-          <div className="founder-photo" role="img" aria-label="Valentin Thiery, créateur et fondateur de LEXIA" />
-          <div className="founder-copy">
-            <span>CRÉÉ ET FONDÉ PAR</span>
-            <h2>Valentin Thiery</h2>
-            <p>LEXIA est née d’un constat simple : rendre l’accès au droit plus rapide, plus humain et plus accessible.</p>
-            <p>Développée avec des avocats, juristes, développeurs et spécialistes du numérique, la plateforme accompagne particuliers et professionnels partout en France.</p>
-            <strong>Créateur et fondateur de LEXIA</strong>
-          </div>
-          <div className="founder-facts">
-            <div><b>49 000+</b><span>avocats référencés</span></div>
-            <div><b>24h/24</b><span>7 jours sur 7</span></div>
-            <div><b>100 %</b><span>confidentiel</span></div>
-          </div>
-        </div>
-      </section>
-
       <section className="public-section process-section" id="fonctionnement">
         <div className="public-container">
           <div className="section-heading centered">
@@ -140,7 +123,7 @@ export default function HomePage() {
             <span>DOMAINES D’INTERVENTION</span>
             <h2>Une première assistance pour les situations du quotidien.</h2>
             <p>Particulier ou professionnel, sélectionnez le motif correspondant à votre situation lors du dépôt.</p>
-            <Link href="/inscription" className="text-link">Voir tous les domaines →</Link>
+            <Link href="/conseils-juridiques" className="text-link">Voir les guides juridiques →</Link>
           </div>
           <div className="domain-grid">
             {domains.map(([icon, title, description]) => (
@@ -186,7 +169,7 @@ export default function HomePage() {
       <footer className="public-footer">
         <div className="public-container footer-main">
           <div><Link href="/" className="footer-logo">LEXIA<span>.</span></Link><p>L’assistance juridique en ligne, simple, humaine et sécurisée.</p></div>
-          <div><b>Service</b><Link href="#fonctionnement">Fonctionnement</Link><Link href="#domaines">Domaines</Link><Link href="#tarifs">Tarifs</Link></div>
+          <div><b>Service</b><Link href="#fonctionnement">Fonctionnement</Link><Link href="#domaines">Domaines</Link><Link href="/conseils-juridiques">Conseils juridiques</Link><Link href="#tarifs">Tarifs</Link></div>
           <div><b>Mon espace</b><Link href="/inscription">Créer un compte</Link><Link href="/connexion">Se connecter</Link><Link href="/nouveau-dossier">Déposer un dossier</Link></div>
           <div><b>Informations</b><Link href="/confidentialite">Confidentialité</Link><Link href="/conditions">Conditions générales</Link><Link href="/mentions-legales">Mentions légales</Link></div>
         </div>
