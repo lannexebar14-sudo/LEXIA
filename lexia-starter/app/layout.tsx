@@ -15,7 +15,6 @@ import "./h24-specialists.css";
 import "./remove-founder-section.css";
 import LiveSupport from "./components/LiveSupport";
 import PwaExperience from "./components/PwaExperience";
-import MobilePlatformBadge from "./components/MobilePlatformBadge";
 import MaintenanceGateV2 from "./components/MaintenanceGateV2";
 import AdminNavigationFix from "./components/AdminNavigationFix";
 import AdminEmailNavigation from "./components/AdminEmailNavigation";
@@ -133,7 +132,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AdminEmailNavigation />
           <RoleBasedAdminAccess />
           <ClientCaseConversationMount />
-          <MobilePlatformBadge />
           <PwaExperience />
           <LiveSupport />
         </MaintenanceGateV2>
