@@ -35,6 +35,8 @@ export default function AdministrationClientsPage() {
   const [query, setQuery] = useState("");
   const [syncing, setSyncing] = useState(true);
   const [warning, setWarning] = useState("");
+  const [notice, setNotice] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -86,6 +88,39 @@ export default function AdministrationClientsPage() {
   const professionals = users.filter((user) => user.account_type === "professionnel").length;
   const confirmed = users.filter((user) => Boolean(user.confirmed_at)).length;
 
+  async function deleteClient(user: UserRow) {
+    if (deletingId) return;
+    const clientName = user.full_name || user.company_name || user.email;
+    const confirmed = window.confirm(
+      `Supprimer définitivement le compte de ${clientName} (${user.email}) ?\n\nLe client sera déconnecté, devra créer un nouveau compte pour revenir sur LEXIA et recevra automatiquement un e-mail l’informant de la suppression.`,
+    );
+    if (!confirmed) return;
+
+    const secondConfirmation = window.prompt(`Pour confirmer la suppression définitive, saisissez exactement : SUPPRIMER`);
+    if (secondConfirmation !== "SUPPRIMER") {
+      setWarning("Suppression annulée : la confirmation n’a pas été saisie correctement.");
+      return;
+    }
+
+    setDeletingId(user.id);
+    setWarning("");
+    setNotice("");
+
+    const { data, error } = await supabase.functions.invoke("admin-delete-client", {
+      body: { userId: user.id },
+    });
+
+    if (error || !data?.success) {
+      setWarning(data?.error || "La suppression du compte n’a pas pu être effectuée.");
+      setDeletingId(null);
+      return;
+    }
+
+    setUsers((current) => current.filter((item) => item.id !== user.id));
+    setNotice(data.message || `Le compte ${user.email} a été supprimé et le client a été informé par e-mail.`);
+    setDeletingId(null);
+  }
+
   async function logout() {
     await supabase.auth.signOut({ scope: "local" });
     router.replace("/connexion");
@@ -133,6 +168,7 @@ export default function AdministrationClientsPage() {
           </div>
 
           {warning && <div className="clients-fast-warning">{warning}</div>}
+          {notice && <div className="clients-fast-success">{notice}</div>}
 
           <div className="clients-fast-list">
             {syncing && users.length === 0 && <div className="clients-fast-empty">Synchronisation des comptes en arrière-plan…</div>}
@@ -151,6 +187,15 @@ export default function AdministrationClientsPage() {
                 <span className={user.confirmed_at ? "clients-fast-confirmed" : "clients-fast-pending"}>
                   {user.confirmed_at ? "Confirmé" : "À confirmer"}
                 </span>
+                <button
+                  type="button"
+                  className="clients-fast-delete"
+                  disabled={deletingId === user.id}
+                  onClick={() => deleteClient(user)}
+                  title="Supprimer définitivement ce compte client"
+                >
+                  {deletingId === user.id ? "Suppression…" : "Supprimer le compte"}
+                </button>
               </article>
             ))}
           </div>
