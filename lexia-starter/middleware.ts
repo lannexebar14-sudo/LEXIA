@@ -15,6 +15,13 @@ function loginRedirect(request: NextRequest) {
   return url;
 }
 
+function verificationRedirect(request: NextRequest, destination: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/verification-admin";
+  url.search = `?redirect=${encodeURIComponent(destination)}`;
+  return url;
+}
+
 function roleDestination(role: string | null | undefined) {
   if (role === "juriste" || role === "avocat") return "/administration/mes-dossiers";
   if (role === "developpeur") return "/administration/developpement";
@@ -61,12 +68,8 @@ export async function middleware(request: NextRequest) {
     if (role !== "admin") return response;
     const token = request.cookies.get(getAdmin2FACookieName())?.value;
     const verified = await verifyAdmin2FAToken(token, user.id, session.access_token);
-    if (!verified) {
-      const verification = request.nextUrl.clone();
-      verification.pathname = "/verification-admin";
-      verification.search = "";
-      return NextResponse.redirect(verification);
-    }
+    if (!verified) return NextResponse.redirect(verificationRedirect(request, "/administration/nouveau-dossier"));
+
     const destination = request.nextUrl.clone();
     destination.pathname = "/administration/nouveau-dossier";
     destination.search = "";
@@ -84,10 +87,8 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(getAdmin2FACookieName())?.value;
     const verified = await verifyAdmin2FAToken(token, user.id, session.access_token);
     if (!verified) {
-      const verification = request.nextUrl.clone();
-      verification.pathname = "/verification-admin";
-      verification.search = "";
-      return NextResponse.redirect(verification);
+      const destination = request.nextUrl.pathname + request.nextUrl.search;
+      return NextResponse.redirect(verificationRedirect(request, destination));
     }
   }
 
