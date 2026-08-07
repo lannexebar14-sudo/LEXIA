@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSeoGuide, seoGuides } from "../../../lib/seo-guides";
+import { seoGuides } from "../../../lib/seo-guides";
+import { extraSeoGuides } from "../../../lib/seo-guides-extra";
+
+const allGuides = [...seoGuides, ...extraSeoGuides];
+const getGuide = (slug: string) => allGuides.find((guide) => guide.slug === slug);
 
 export function generateStaticParams() {
-  return seoGuides.map((guide) => ({ slug: guide.slug }));
+  return allGuides.map((guide) => ({ slug: guide.slug }));
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const guide = getSeoGuide(params.slug);
+  const guide = getGuide(params.slug);
   if (!guide) return {};
   return {
     title: guide.title,
     description: guide.description,
     alternates: { canonical: `/conseils-juridiques/${guide.slug}` },
+    robots: { index: true, follow: true },
     openGraph: {
       type: "article",
       title: guide.title,
@@ -26,8 +31,9 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 }
 
 export default function GuidePage({ params }: { params: { slug: string } }) {
-  const guide = getSeoGuide(params.slug);
+  const guide = getGuide(params.slug);
   if (!guide) notFound();
+  const related = allGuides.filter((item) => item.category === guide.category && item.slug !== guide.slug).slice(0, 4);
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -46,6 +52,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
     description: guide.description,
     dateModified: guide.updatedAt,
     datePublished: guide.updatedAt,
+    inLanguage: "fr-FR",
     mainEntityOfPage: `https://lexiafrance.fr/conseils-juridiques/${guide.slug}`,
     author: { "@type": "Organization", name: "LEXIA", url: "https://lexiafrance.fr" },
     publisher: { "@type": "Organization", name: "LEXIA", url: "https://lexiafrance.fr" },
@@ -110,6 +117,22 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
               <p style={{ margin: 0, color: "#4f5c6c", lineHeight: 1.65 }}>{item.answer}</p>
             </div>
           ))}
+        </section>
+
+        {related.length > 0 && (
+          <section style={{ margin: "44px 0" }}>
+            <h2 style={{ font: "700 30px Georgia", color: "#0b2340" }}>À lire aussi en {guide.category.toLowerCase()}</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+              {related.map((item) => (
+                <Link key={item.slug} href={`/conseils-juridiques/${item.slug}`} style={{ display: "block", background: "#fff", border: "1px solid #e4ded3", borderRadius: 15, padding: 18, color: "#0b2340", textDecoration: "none", fontWeight: 800, lineHeight: 1.35 }}>{item.title} →</Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section style={{ borderTop: "1px solid #ded8cc", paddingTop: 24, marginTop: 36 }}>
+          <h2 style={{ font: "700 24px Georgia", color: "#0b2340" }}>Sources officielles à consulter</h2>
+          <p style={{ color: "#5d6978", lineHeight: 1.65 }}>Les règles peuvent évoluer. Pour vérifier les textes et informations administratives en vigueur, consultez notamment <a href="https://www.service-public.fr" rel="noopener noreferrer" style={{ color: "#0b2340", fontWeight: 800 }}>Service-Public.fr</a> et <a href="https://www.legifrance.gouv.fr" rel="noopener noreferrer" style={{ color: "#0b2340", fontWeight: 800 }}>Légifrance</a>.</p>
         </section>
 
         <aside style={{ background: "#0b2340", color: "#fff", borderRadius: 22, padding: 30, marginTop: 48 }}>
