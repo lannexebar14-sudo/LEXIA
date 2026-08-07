@@ -4,6 +4,7 @@ import { extraSeoGuides } from "../lib/seo-guides-extra";
 
 const BASE_URL = "https://lexiafrance.fr";
 const allGuides = [...seoGuides, ...extraSeoGuides];
+const categories = ["logement", "travail", "famille", "consommation", "entreprise", "administration"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
@@ -15,6 +16,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/confidentialite`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
   ];
 
+  const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
+    url: `${BASE_URL}/conseils-juridiques/categorie/${category}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.85,
+  }));
+
   const guides: MetadataRoute.Sitemap = allGuides.map((guide) => ({
     url: `${BASE_URL}/conseils-juridiques/${guide.slug}`,
     lastModified: new Date(guide.updatedAt),
@@ -22,5 +30,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...guides];
+  return [...staticPages, ...categoryPages, ...guides];
 }
