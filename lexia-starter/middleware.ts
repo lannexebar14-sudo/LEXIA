@@ -6,11 +6,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ehmxjwmwwi
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_rQ0_cgEKffn_XcmhQ56mpA_411CYGEc";
 
 type AccessContext = { role?: string | null };
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: Parameters<NextResponse["cookies"]["set"]>[2];
-};
+type CookieToSet = { name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] };
 
 function loginRedirect(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -27,18 +23,16 @@ function roleDestination(role: string | null | undefined) {
 
 function isRoleAllowed(role: string | null | undefined, pathname: string) {
   if (role === "admin") return true;
-  if (role === "juriste" || role === "avocat") {
-    return pathname.startsWith("/administration/mes-dossiers") || pathname.startsWith("/administration/mes-messages");
-  }
-  if (role === "developpeur") {
-    return pathname.startsWith("/administration/utilisateurs") || pathname.startsWith("/administration/developpement");
-  }
+  if (role === "juriste" || role === "avocat") return pathname.startsWith("/administration/mes-dossiers") || pathname.startsWith("/administration/mes-messages");
+  if (role === "developpeur") return pathname.startsWith("/administration/utilisateurs") || pathname.startsWith("/administration/developpement");
   return false;
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (!pathname.startsWith("/administration")) return NextResponse.next();
+  const isAdministration = pathname.startsWith("/administration");
+  const isNewCase = pathname === "/nouveau-dossier";
+  if (!isAdministration && !isNewCase) return NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -53,13 +47,31 @@ export async function middleware(request: NextRequest) {
   });
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (isNewCase && (userError || !user)) return response;
   if (userError || !user) return NextResponse.redirect(loginRedirect(request));
 
   const { data: { session } } = await supabase.auth.getSession();
+  if (isNewCase && !session) return response;
   if (!session) return NextResponse.redirect(loginRedirect(request));
 
   const { data, error } = await supabase.rpc("get_my_access_context").maybeSingle();
   const role = !error ? (data as AccessContext | null)?.role : null;
+
+  if (isNewCase) {
+    if (role !== "admin") return response;
+    const token = request.cookies.get(getAdmin2FACookieName())?.value;
+    const verified = await verifyAdmin2FAToken(token, user.id, session.access_token);
+    if (!verified) {
+      const verification = request.nextUrl.clone();
+      verification.pathname = "/verification-admin";
+      verification.search = "";
+      return NextResponse.redirect(verification);
+    }
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/administration/nouveau-dossier";
+    destination.search = "";
+    return NextResponse.redirect(destination);
+  }
 
   if (!isRoleAllowed(role, pathname)) {
     const destination = request.nextUrl.clone();
@@ -84,6 +96,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = {
-  matcher: ["/administration/:path*"],
-};
+export const config = { matcher: ["/administration/:path*", "/nouveau-dossier"] };
