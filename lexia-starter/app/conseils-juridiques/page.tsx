@@ -1,14 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { seoGuides } from "../../lib/seo-guides";
+import { extraSeoGuides } from "../../lib/seo-guides-extra";
+
+const allGuides = [...seoGuides, ...extraSeoGuides];
 
 export const metadata: Metadata = {
   title: "Conseils juridiques et guides pratiques",
-  description: "Guides juridiques LEXIA sur le logement, le travail, la famille, la consommation et les litiges professionnels.",
+  description: "Guides juridiques LEXIA sur le logement, le travail, la famille, la consommation, l'entreprise et les démarches administratives.",
   alternates: { canonical: "/conseils-juridiques" },
+  openGraph: {
+    title: "Conseils juridiques LEXIA",
+    description: "Des guides pratiques pour comprendre les premières démarches juridiques et préparer votre dossier.",
+    url: "/conseils-juridiques",
+    siteName: "LEXIA",
+    locale: "fr_FR",
+    type: "website",
+  },
 };
 
-const categories = ["Logement", "Travail", "Famille", "Consommation", "Entreprise", "Démarches"];
+const categories = ["Logement", "Travail", "Famille", "Consommation", "Entreprise", "Administration", "Démarches"];
 
 export default function ConseilsJuridiquesPage() {
   return (
@@ -20,19 +31,29 @@ export default function ConseilsJuridiquesPage() {
         </div>
       </header>
 
-      <section style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 20px 34px" }}>
+      <section style={{ maxWidth: 1120, margin: "0 auto", padding: "64px 20px 28px" }}>
         <span style={{ color: "#987636", fontSize: 12, fontWeight: 900, letterSpacing: 1.8 }}>RESSOURCES JURIDIQUES LEXIA</span>
-        <h1 style={{ maxWidth: 760, font: "700 48px/1.08 Georgia", color: "#0b2340", margin: "12px 0 18px" }}>Comprendre vos droits avant de passer à l’action.</h1>
-        <p style={{ maxWidth: 780, fontSize: 18, lineHeight: 1.7, color: "#5d6978" }}>Retrouvez des guides pratiques pour identifier les premières démarches, préparer vos documents et mieux comprendre les options possibles. Ces contenus sont informatifs et ne remplacent pas l’étude personnalisée de votre situation.</p>
+        <h1 style={{ maxWidth: 820, font: "700 48px/1.08 Georgia", color: "#0b2340", margin: "12px 0 18px" }}>Comprendre vos droits avant de passer à l’action.</h1>
+        <p style={{ maxWidth: 820, fontSize: 18, lineHeight: 1.7, color: "#5d6978" }}>LEXIA met à disposition {allGuides.length} guides pratiques pour identifier les premières démarches, préparer vos documents et mieux comprendre les options possibles. Ces contenus sont informatifs et ne remplacent pas l’étude personnalisée de votre situation.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 24 }}>
+          {categories.map((category) => {
+            const count = allGuides.filter((guide) => guide.category === category).length;
+            if (!count) return null;
+            return <a key={category} href={`#${category.toLowerCase()}`} style={{ background: "#fff", border: "1px solid #dfd8cc", color: "#0b2340", borderRadius: 999, padding: "9px 13px", textDecoration: "none", fontWeight: 800, fontSize: 13 }}>{category} · {count}</a>;
+          })}
+        </div>
       </section>
 
       <section style={{ maxWidth: 1120, margin: "0 auto", padding: "0 20px 70px" }}>
         {categories.map((category) => {
-          const guides = seoGuides.filter((guide) => guide.category === category);
+          const guides = allGuides.filter((guide) => guide.category === category);
           if (!guides.length) return null;
           return (
-            <section key={category} style={{ marginTop: 34 }}>
-              <h2 style={{ font: "700 30px Georgia", color: "#0b2340", marginBottom: 16 }}>{category}</h2>
+            <section key={category} id={category.toLowerCase()} style={{ marginTop: 38, scrollMarginTop: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+                <h2 style={{ font: "700 30px Georgia", color: "#0b2340", margin: 0 }}>{category}</h2>
+                <span style={{ color: "#8a929d", fontSize: 13 }}>{guides.length} guides</span>
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
                 {guides.map((guide) => (
                   <article key={guide.slug} style={{ background: "#fff", border: "1px solid #e2ddd3", borderRadius: 18, padding: 22, boxShadow: "0 8px 24px rgba(20,36,58,.04)" }}>
