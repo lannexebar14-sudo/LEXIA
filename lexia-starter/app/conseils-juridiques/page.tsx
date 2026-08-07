@@ -20,6 +20,14 @@ export const metadata: Metadata = {
 };
 
 const categories = ["Logement", "Travail", "Famille", "Consommation", "Entreprise", "Administration", "Démarches"];
+const categorySlugs: Record<string, string> = {
+  Logement: "logement",
+  Travail: "travail",
+  Famille: "famille",
+  Consommation: "consommation",
+  Entreprise: "entreprise",
+  Administration: "administration",
+};
 
 export default function ConseilsJuridiquesPage() {
   return (
@@ -39,7 +47,12 @@ export default function ConseilsJuridiquesPage() {
           {categories.map((category) => {
             const count = allGuides.filter((guide) => guide.category === category).length;
             if (!count) return null;
-            return <a key={category} href={`#${category.toLowerCase()}`} style={{ background: "#fff", border: "1px solid #dfd8cc", color: "#0b2340", borderRadius: 999, padding: "9px 13px", textDecoration: "none", fontWeight: 800, fontSize: 13 }}>{category} · {count}</a>;
+            const categorySlug = categorySlugs[category];
+            return categorySlug ? (
+              <Link key={category} href={`/conseils-juridiques/categorie/${categorySlug}`} style={{ background: "#fff", border: "1px solid #dfd8cc", color: "#0b2340", borderRadius: 999, padding: "9px 13px", textDecoration: "none", fontWeight: 800, fontSize: 13 }}>{category} · {count}</Link>
+            ) : (
+              <a key={category} href={`#${category.toLowerCase()}`} style={{ background: "#fff", border: "1px solid #dfd8cc", color: "#0b2340", borderRadius: 999, padding: "9px 13px", textDecoration: "none", fontWeight: 800, fontSize: 13 }}>{category} · {count}</a>
+            );
           })}
         </div>
       </section>
@@ -48,11 +61,12 @@ export default function ConseilsJuridiquesPage() {
         {categories.map((category) => {
           const guides = allGuides.filter((guide) => guide.category === category);
           if (!guides.length) return null;
+          const categorySlug = categorySlugs[category];
           return (
             <section key={category} id={category.toLowerCase()} style={{ marginTop: 38, scrollMarginTop: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
                 <h2 style={{ font: "700 30px Georgia", color: "#0b2340", margin: 0 }}>{category}</h2>
-                <span style={{ color: "#8a929d", fontSize: 13 }}>{guides.length} guides</span>
+                {categorySlug ? <Link href={`/conseils-juridiques/categorie/${categorySlug}`} style={{ color: "#667383", fontSize: 13, fontWeight: 800, textDecoration: "none" }}>Voir le domaine · {guides.length} guides →</Link> : <span style={{ color: "#8a929d", fontSize: 13 }}>{guides.length} guides</span>}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
                 {guides.map((guide) => (
