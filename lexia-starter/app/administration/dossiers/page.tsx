@@ -169,6 +169,51 @@ export default function AdminCasesPage() {
     setSavingCaseId(null);
   }
 
+  async function deleteCase(legalCase: AdminCase) {
+    if (savingCaseId) return;
+    const confirmed = window.confirm(`SUPPRESSION DÉFINITIVE\n\nLe dossier ${legalCase.reference}, ses messages, événements, prestations, paiements liés et pièces enregistrées seront supprimés. Cette action est irréversible.\n\nContinuer ?`);
+    if (!confirmed) return;
+
+    const typedReference = window.prompt(`Pour confirmer, saisissez exactement la référence :\n${legalCase.reference}`);
+    if (typedReference?.trim() !== legalCase.reference) {
+      setNotice("Suppression annulée : la référence saisie ne correspond pas.");
+      return;
+    }
+
+    setSavingCaseId(legalCase.id);
+    setNotice("");
+
+    const ownDocumentPaths = documents.filter((document) => document.case_id === legalCase.id).map((document) => document.storage_path);
+    const { data: attachmentRows } = await supabase
+      .from("legal_case_message_attachments")
+      .select("storage_path")
+      .eq("case_id", legalCase.id);
+    const attachmentPaths = ((attachmentRows as { storage_path: string }[] | null) || []).map((item) => item.storage_path);
+    const storagePaths = Array.from(new Set([...ownDocumentPaths, ...attachmentPaths].filter(Boolean)));
+
+    if (storagePaths.length > 0) {
+      const { error: storageError } = await supabase.storage.from("case-documents").remove(storagePaths);
+      if (storageError) {
+        setNotice("Suppression interrompue : certaines pièces du dossier n’ont pas pu être supprimées du stockage sécurisé.");
+        setSavingCaseId(null);
+        return;
+      }
+    }
+
+    const { error } = await supabase.from("legal_cases").delete().eq("id", legalCase.id);
+    if (error) {
+      setNotice(`Le dossier ${legalCase.reference} n’a pas pu être supprimé.`);
+      setSavingCaseId(null);
+      return;
+    }
+
+    setCases((current) => current.filter((item) => item.id !== legalCase.id));
+    setDocuments((current) => current.filter((item) => item.case_id !== legalCase.id));
+    setOpenCaseId((current) => current === legalCase.id ? null : current);
+    setNotice(`${legalCase.reference} a été supprimé définitivement.`);
+    setSavingCaseId(null);
+  }
+
   async function openDocument(document: CaseDocument) {
     const { data, error } = await supabase.storage.from("case-documents").createSignedUrl(document.storage_path, 60);
     if (error || !data?.signedUrl) return setNotice("Le document n’a pas pu être ouvert.");
@@ -198,6 +243,29 @@ export default function AdminCasesPage() {
 
       <section className="admin-main admin-cases-page">
         <header className="admin-cases-hero"><div><small>GESTION DES DEMANDES</small><h1>Dossiers clients</h1><p>Consultez les demandes, ouvrez les documents et répondez au client depuis son dossier.</p></div><Link href="/nouveau-dossier">＋ Déposer un dossier test</Link></header>
+
+        <Link
+          href="/administration/mes-dossiers/courriers"
+          style={{
+            display: "grid",
+            placeItems: "center",
+            gap: "4px",
+            width: "100%",
+            margin: "12px 0 20px",
+            padding: "15px 18px",
+            borderRadius: "16px",
+            background: "linear-gradient(135deg,#e4c46e,#d6ae52)",
+            color: "#0c2340",
+            border: "1px solid rgba(154,122,57,.28)",
+            boxShadow: "0 8px 22px rgba(12,35,64,.08)",
+            textDecoration: "none",
+            textAlign: "center",
+          }}
+        >
+          <strong style={{ fontSize: "16px", fontWeight: 900 }}>✉ Courriers amiables</strong>
+          <span style={{ fontSize: "12px", fontWeight: 700, opacity: .82 }}>Générez des courriers pour rechercher une solution amiable</span>
+        </Link>
+
         {notice && <div className="admin-case-notice">{notice}</div>}
 
         <section className="admin-case-stats">
@@ -234,6 +302,18 @@ export default function AdminCasesPage() {
                 <section><small>INFORMATIONS</small><div className="admin-info-grid"><article><span>Client</span><b>{clientName}</b></article><article><span>Profil</span><b>{legalCase.account_type}</b></article><article><span>Urgence</span><b>{legalCase.urgency}</b></article><article><span>Montant prévu</span><b>{formatAmount(legalCase.total_amount)}</b></article><article><span>Partie adverse</span><b>{legalCase.adverse_known ? legalCase.adverse_name || "À compléter" : "Non renseignée"}</b></article><article><span>Dernière mise à jour</span><b>{new Date(legalCase.updated_at).toLocaleString("fr-FR")}</b></article></div></section>
                 <section className="admin-documents-section"><small>DOCUMENTS SÉCURISÉS</small><h3>Pièces jointes</h3>{caseDocuments.length === 0 ? <p>Aucun document enregistré.</p> : <div>{caseDocuments.map((document) => <button type="button" key={document.id} onClick={() => openDocument(document)}><span>▤</span><div><b>{document.original_name}</b><small>{formatSize(document.size_bytes)} · {new Date(document.created_at).toLocaleDateString("fr-FR")}</small></div><em>Ouvrir</em></button>)}</div>}</section>
                 <AdminCaseConversation caseId={legalCase.id} clientId={legalCase.user_id} reference={legalCase.reference} clientName={clientName} />
+                <section style={{ marginTop: "16px", padding: "16px", border: "1px solid #f1c6ca", borderRadius: "14px", background: "#fff7f7" }}>
+                  <small style={{ display: "block", color: "#a72d39", fontWeight: 900, letterSpacing: ".7px", marginBottom: "8px" }}>ZONE SENSIBLE</small>
+                  <button
+                    type="button"
+                    disabled={savingCaseId === legalCase.id}
+                    onClick={() => void deleteCase(legalCase)}
+                    style={{ width: "100%", minHeight: "46px", border: "1px solid #a72d39", borderRadius: "12px", background: "#fff", color: "#a72d39", fontWeight: 900, cursor: "pointer" }}
+                  >
+                    {savingCaseId === legalCase.id ? "Suppression en cours…" : "Supprimer définitivement ce dossier"}
+                  </button>
+                  <p style={{ margin: "9px 0 0", color: "#8f5b61", fontSize: "11px", lineHeight: 1.5 }}>Le dossier disparaîtra de la liste et des statistiques. La suppression est irréversible.</p>
+                </section>
               </div>}
             </article>;
           })}
