@@ -89,9 +89,72 @@
   transform: translateY(-1px);
 }
 
+/* Le bandeau de la page de connexion reste sous la zone système sur mobile. */
+.signup-showcase-top {
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .signup-showcase-top {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-height: 82px;
+    padding: calc(env(safe-area-inset-top, 0px) + 22px) 24px 12px !important;
+    gap: 18px;
+    z-index: 5;
+  }
+
+  .signup-logo {
+    position: static !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    flex: 0 0 auto;
+  }
+
+  .signup-back {
+    position: static !important;
+    margin: 0 !important;
+    line-height: 1.25 !important;
+    text-align: right;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  .signup-showcase-content {
+    margin-top: 10px !important;
+  }
+}
+
 @media (max-width: 640px) {
   .login-options {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .signup-showcase-top {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    gap: 12px;
+  }
+
+  .signup-back {
+    font-size: 15px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .signup-showcase-top {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .signup-back {
+    font-size: 14px !important;
   }
 }
