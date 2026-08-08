@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./home.css";
+import "./home-menu.css";
 
 const domains = [
   ["⌂", "Logement", "Bail, dépôt de garantie, travaux, expulsion et voisinage."],
@@ -13,7 +14,24 @@ const domains = [
 export default function HomePage() {
   return <main className="public-site">
     <div className="announcement"><span>Assistance juridique en ligne pour particuliers et professionnels</span><Link href="/impayes">Nouveau : LEXIA Impayés →</Link></div>
-    <header className="public-header"><div className="public-container public-nav"><Link href="/" className="public-logo">LEXIA<span>.</span></Link><nav className="public-links"><Link href="#fonctionnement">Fonctionnement</Link><Link href="#domaines">Domaines</Link><Link href="/impayes">Impayés</Link><Link href="/conseils-juridiques">Guides</Link><Link href="#tarifs">Tarifs</Link></nav><div className="public-actions"><Link className="public-login" href="/connexion">Se connecter</Link><Link className="public-button public-button-dark" href="/inscription">Créer mon espace</Link></div></div></header>
+    <header className="public-header">
+      <div className="public-container public-nav">
+        <Link href="/" className="public-logo">LEXIA<span>.</span></Link>
+        <nav className="public-links"><Link href="#fonctionnement">Fonctionnement</Link><Link href="#domaines">Domaines</Link><Link href="/impayes">Impayés</Link><Link href="/conseils-juridiques">Guides</Link><Link href="#tarifs">Tarifs</Link></nav>
+        <div className="public-actions"><Link className="public-login" href="/connexion">Se connecter</Link><Link className="public-button public-button-dark" href="/inscription">Créer mon espace</Link></div>
+      </div>
+      <nav className="mobile-service-menu" aria-label="Menu principal mobile">
+        <div className="mobile-service-menu-inner">
+          <Link href="/" className="active"><span>⌂</span>Accueil</Link>
+          <Link href="#fonctionnement"><span>◎</span>Fonctionnement</Link>
+          <Link href="/impayes"><span>€</span>Impayés</Link>
+          <Link href="/conseils-juridiques"><span>§</span>Guides</Link>
+          <Link href="#domaines"><span>◇</span>Domaines</Link>
+          <Link href="#tarifs"><span>◫</span>Tarifs</Link>
+          <Link href="/connexion"><span>♙</span>Connexion</Link>
+        </div>
+      </nav>
+    </header>
     <section className="public-hero"><div className="public-container hero-layout"><div className="hero-copy"><div className="hero-label"><span>●</span> Assistance humaine et confidentielle</div><h1>Le juridique devient enfin <em>plus simple.</em></h1><p>Décrivez votre situation, transmettez vos documents et échangez avec un professionnel depuis un espace sécurisé. LEXIA vous aide à comprendre, agir et rédiger les bonnes démarches.</p><div className="hero-buttons"><Link className="public-button public-button-gold" href="/inscription">Déposer ma demande</Link><Link className="public-button public-button-light" href="/impayes">J’ai un impayé</Link></div><div className="hero-proof"><div><strong>13 €</strong><span>Ouverture particulier</span></div><div><strong>29 €</strong><span>Ouverture professionnel</span></div><div><strong>100 %</strong><span>Espace confidentiel</span></div></div></div><div className="product-preview" aria-label="Aperçu LEXIA"><div className="preview-top"><div className="preview-brand">LEXIA<span>.</span></div><div className="preview-user">✓</div></div><div className="preview-content" style={{padding:28}}><small>ESPACE SÉCURISÉ</small><h2>Votre dossier centralisé</h2><div className="preview-banner"><div><span>DOSSIER EN COURS</span><strong>Analyse et démarches</strong><p>Documents, messages et suivi réunis au même endroit.</p></div></div><div className="preview-stats"><article><span>Suivi</span><strong>24/7</strong></article><article><span>Espace</span><strong>Privé</strong></article></div></div></div></div></section>
     <section className="trust-strip" id="confiance"><div className="public-container trust-items"><div><span>01</span><p><strong>Accompagnement humain</strong>Des réponses adaptées à votre situation.</p></div><div><span>02</span><p><strong>Documents centralisés</strong>Toutes vos pièces dans un espace unique.</p></div><div><span>03</span><p><strong>Résolution amiable</strong>Des démarches structurées lorsque cela est possible.</p></div><div><span>04</span><p><strong>Relais professionnel</strong>Orientation lorsque nécessaire.</p></div></div></section>
     <section className="public-section process-section" id="fonctionnement"><div className="public-container"><div className="section-heading centered"><span>UN PARCOURS SIMPLE</span><h2>Votre demande prise en charge en quelques étapes.</h2><p>LEXIA rassemble les informations, documents et échanges nécessaires pour faire avancer votre situation.</p></div><div className="process-grid"><article><div className="process-number">01</div><h3>Expliquez</h3><p>Décrivez les faits et votre objectif.</p></article><article><div className="process-number">02</div><h3>Documentez</h3><p>Ajoutez contrats, courriers et justificatifs.</p></article><article><div className="process-number">03</div><h3>Échangez</h3><p>Suivez votre dossier depuis la messagerie sécurisée.</p></article><article><div className="process-number">04</div><h3>Agissez</h3><p>Recevez les prochaines démarches adaptées.</p></article></div></div></section>
