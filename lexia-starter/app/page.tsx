@@ -1,7 +1,9 @@
 import Link from "next/link";
+import HomeFaq from "./HomeFaq";
 import "./home.css";
 import "./home-menu.css";
 import "./home-premium.css";
+import "./home-faq.css";
 
 const domains = [
   ["⌂", "Logement", "Bail, dépôt de garantie, travaux, expulsion et voisinage."],
@@ -22,7 +24,7 @@ export default function HomePage() {
         <nav className="public-links"><Link href="#fonctionnement">Fonctionnement</Link><Link href="#services">Services</Link><Link href="/impayes">Impayés</Link><Link href="/conseils-juridiques">Guides</Link><Link href="#tarifs">Tarifs</Link></nav>
         <div className="public-actions"><Link className="public-login" href="/connexion">Connexion</Link><Link className="public-button public-button-dark" href="/inscription">Créer mon espace</Link></div>
       </div>
-      <nav className="mobile-service-menu" aria-label="Menu principal mobile"><div className="mobile-service-menu-inner"><Link href="/" className="active"><span>⌂</span>Accueil</Link><Link href="#services"><span>✦</span>Services</Link><Link href="/impayes"><span>€</span>Impayés</Link><Link href="/conseils-juridiques"><span>§</span>Guides</Link><Link href="#domaines"><span>◇</span>Domaines</Link><Link href="#tarifs"><span>◫</span>Tarifs</Link><Link href="/connexion"><span>♙</span>Connexion</Link></div></nav>
+      <nav className="mobile-service-menu" aria-label="Menu principal mobile"><div className="mobile-service-menu-inner"><Link href="/" className="active"><span>⌂</span>Accueil</Link><Link href="#services"><span>✦</span>Services</Link><Link href="/impayes"><span>€</span>Impayés</Link><Link href="/conseils-juridiques"><span>§</span>Guides</Link><Link href="#domaines"><span>◇</span>Domaines</Link><Link href="#tarifs"><span>◫</span>Tarifs</Link><Link href="#faq"><span>?</span>FAQ</Link><Link href="/connexion"><span>♙</span>Connexion</Link></div></nav>
     </header>
 
     <section className="public-hero">
@@ -62,8 +64,10 @@ export default function HomePage() {
 
     <section className="public-section pricing-section" id="tarifs"><div className="public-container"><div className="section-heading centered light-heading"><span>TARIFICATION CLAIRE</span><h2>Un coût annoncé avant de commencer.</h2><p>L’ouverture permet de créer votre espace, transmettre votre demande et commencer l’étude du dossier.</p></div><div className="pricing-grid"><article className="price-card"><div className="price-card-top"><span>PARTICULIER</span><div><strong>13 €</strong><small>TTC / dossier</small></div></div><p>Pour les litiges et démarches de la vie quotidienne.</p><ul><li>Espace sécurisé</li><li>Première analyse</li><li>Dépôt de documents</li><li>Messagerie du dossier</li></ul><Link href="/inscription" className="public-button public-button-gold">Commencer</Link></article><article className="price-card featured-price"><div className="popular-tag">PROFESSIONNELS</div><div className="price-card-top"><span>ENTREPRISE</span><div><strong>29 €</strong><small>TTC / dossier</small></div></div><p>Pour entreprises, indépendants et associations.</p><ul><li>Compte professionnel</li><li>Litiges commerciaux</li><li>Service Impayés</li><li>Facturation dédiée</li></ul><Link href="/impayes" className="public-button public-button-dark">Voir LEXIA Impayés</Link></article></div><p className="pricing-note">Toute prestation complémentaire est présentée avant validation et paiement.</p></div></section>
 
+    <HomeFaq />
+
     <section className="public-section final-cta"><div className="public-container final-card"><div><span>VOTRE ESPACE JURIDIQUE</span><h2>Votre dossier peut commencer maintenant.</h2><p>Créez votre espace, transmettez les informations utiles et suivez l’avancement depuis votre téléphone ou votre ordinateur.</p></div><div className="final-actions"><Link href="/inscription" className="public-button public-button-gold">Créer mon dossier</Link><Link href="/connexion" className="final-login">J’ai déjà un compte →</Link></div></div></section>
 
-    <footer className="public-footer"><div className="public-container footer-main"><div><Link href="/" className="footer-logo">LEXIA<span>.</span></Link><p>L’assistance juridique en ligne, simple, humaine et sécurisée.</p></div><div><b>Services</b><Link href="/impayes">LEXIA Impayés</Link><Link href="/conseils-juridiques">Guides juridiques</Link><Link href="#fonctionnement">Fonctionnement</Link></div><div><b>Mon espace</b><Link href="/inscription">Créer un compte</Link><Link href="/connexion">Se connecter</Link><Link href="/nouveau-dossier">Déposer un dossier</Link></div><div><b>Informations</b><Link href="/confidentialite">Confidentialité</Link><Link href="/conditions">Conditions générales</Link><Link href="/mentions-legales">Mentions légales</Link></div></div><div className="public-container footer-bottom"><span>© 2026 LEXIA. Tous droits réservés.</span></div></footer>
+    <footer className="public-footer"><div className="public-container footer-main"><div><Link href="/" className="footer-logo">LEXIA<span>.</span></Link><p>L’assistance juridique en ligne, simple, humaine et sécurisée.</p></div><div><b>Services</b><Link href="/impayes">LEXIA Impayés</Link><Link href="/conseils-juridiques">Guides juridiques</Link><Link href="#fonctionnement">Fonctionnement</Link><Link href="#faq">FAQ</Link></div><div><b>Mon espace</b><Link href="/inscription">Créer un compte</Link><Link href="/connexion">Se connecter</Link><Link href="/nouveau-dossier">Déposer un dossier</Link></div><div><b>Informations</b><Link href="/confidentialite">Confidentialité</Link><Link href="/conditions">Conditions générales</Link><Link href="/mentions-legales">Mentions légales</Link></div></div><div className="public-container footer-bottom"><span>© 2026 LEXIA. Tous droits réservés.</span></div></footer>
   </main>;
 }
