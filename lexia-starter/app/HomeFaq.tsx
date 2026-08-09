@@ -37,7 +37,6 @@ export default function HomeFaq() {
           ))}
         </div>
       </div>
-      <div className="lexia-mobile-cta"><a href="/inscription">Déposer ma demande</a><a href="/connexion">Connexion</a></div>
     </section>
   );
 }
