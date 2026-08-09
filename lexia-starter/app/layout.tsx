@@ -30,74 +30,30 @@ const SITE_URL = "https://lexiafrance.fr";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "LEXIA | Assistance juridique en ligne 24h/24",
-    template: "%s | LEXIA",
+    default: "LEXIA France | Assistance juridique en ligne 24h/24 et 7j/7",
+    template: "%s | LEXIA France",
   },
-  description: "LEXIA est une plateforme française d'assistance juridique en ligne pour particuliers et professionnels : dépôt de dossier, documents, messagerie et orientation adaptée.",
-  keywords: [
-    "assistance juridique en ligne",
-    "aide juridique",
-    "conseil juridique",
-    "juriste en ligne",
-    "litige logement",
-    "droit du travail",
-    "droit de la famille",
-    "litige consommation",
-    "recouvrement facture",
-    "LEXIA",
-  ],
-  applicationName: "LEXIA",
+  description: "LEXIA France accompagne particuliers et professionnels en ligne : assistance juridique, analyse de dossier, résolution amiable, impayés, documents et orientation vers les démarches adaptées.",
+  keywords: ["LEXIA France", "assistance juridique en ligne", "aide juridique en ligne", "juriste en ligne", "résolution amiable litige", "recouvrement amiable impayé", "facture impayée", "litige logement", "droit du travail", "droit de la famille", "litige consommation", "conseil juridique en ligne"],
+  applicationName: "LEXIA France",
   category: "legal services",
-  alternates: {
-    canonical: "/",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
-    },
-  },
-  openGraph: {
-    type: "website",
-    locale: "fr_FR",
-    url: "/",
-    siteName: "LEXIA",
-    title: "LEXIA | Assistance juridique en ligne",
-    description: "Décrivez votre situation, transmettez vos documents et échangez depuis un espace sécurisé.",
-  },
-  twitter: {
-    card: "summary",
-    title: "LEXIA | Assistance juridique en ligne",
-    description: "Assistance juridique en ligne pour particuliers et professionnels.",
-  },
+  alternates: { canonical: "/", languages: { "fr-FR": "/" } },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
+  openGraph: { type: "website", locale: "fr_FR", url: "/", siteName: "LEXIA France", title: "LEXIA France | Assistance juridique en ligne", description: "Assistance juridique en ligne, résolution amiable et accompagnement des impayés pour particuliers et professionnels." },
+  twitter: { card: "summary", title: "LEXIA France | Assistance juridique en ligne", description: "Assistance juridique, dossiers, résolution amiable et impayés en ligne." },
   manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    title: "LEXIA",
-    statusBarStyle: "black-translucent",
-  },
-  formatDetection: {
-    telephone: false,
-  },
+  appleWebApp: { capable: true, title: "LEXIA", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  viewportFit: "cover",
-  themeColor: "#091d33",
-};
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1, viewportFit: "cover", themeColor: "#091d33" };
 
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "LEXIA",
+  "@id": `${SITE_URL}/#organization`,
+  name: "LEXIA France",
+  alternateName: "LEXIA",
   url: SITE_URL,
   email: "contact@lexiafrance.fr",
   description: "Plateforme française d'assistance juridique en ligne pour particuliers et professionnels.",
@@ -106,36 +62,29 @@ const organizationSchema = {
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "LEXIA",
+  "@id": `${SITE_URL}/#website`,
+  name: "LEXIA France",
+  alternateName: "LEXIA",
   url: SITE_URL,
   inLanguage: "fr-FR",
-  publisher: {
-    "@type": "Organization",
-    name: "LEXIA",
-    url: SITE_URL,
-  },
+  publisher: { "@id": `${SITE_URL}/#organization` },
+};
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Assistance juridique en ligne LEXIA France",
+  provider: { "@id": `${SITE_URL}/#organization` },
+  areaServed: { "@type": "Country", name: "France" },
+  serviceType: "Assistance juridique en ligne, orientation juridique et résolution amiable",
+  url: SITE_URL,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="fr">
-      <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
-        <MaintenanceGateV2>
-          <FastSessionRouter />
-          <CaseDraftSync />
-          <H24SpecialistsHighlight />
-          <Suspense fallback={null}>{children}</Suspense>
-          <AccessTimeoutRecovery />
-          <AdminNavigationFix />
-          <AdminEmailNavigation />
-          <RoleBasedAdminAccess />
-          <ClientCaseConversationMount />
-          <PwaExperience />
-          <LiveSupport />
-        </MaintenanceGateV2>
-      </body>
-    </html>
-  );
+  return <html lang="fr"><body>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
+    <MaintenanceGateV2><FastSessionRouter /><CaseDraftSync /><H24SpecialistsHighlight /><Suspense fallback={null}>{children}</Suspense><AccessTimeoutRecovery /><AdminNavigationFix /><AdminEmailNavigation /><RoleBasedAdminAccess /><ClientCaseConversationMount /><PwaExperience /><LiveSupport /></MaintenanceGateV2>
+  </body></html>;
 }
