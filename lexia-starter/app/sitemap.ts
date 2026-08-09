@@ -10,9 +10,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const staticPages: MetadataRoute.Sitemap = [
     { url: BASE_URL, lastModified: now, changeFrequency: "daily", priority: 1 },
-    { url: `${BASE_URL}/orientation`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
+    { url: `${BASE_URL}/orientation-juridique`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
     { url: `${BASE_URL}/impayes`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
     { url: `${BASE_URL}/conseils-juridiques`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
+    { url: `${BASE_URL}/notre-histoire`, lastModified: now, changeFrequency: "monthly", priority: 0.75 },
     { url: `${BASE_URL}/inscription`, lastModified: now, changeFrequency: "monthly", priority: 0.65 },
     { url: `${BASE_URL}/connexion`, lastModified: now, changeFrequency: "monthly", priority: 0.45 },
     { url: `${BASE_URL}/mentions-legales`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
