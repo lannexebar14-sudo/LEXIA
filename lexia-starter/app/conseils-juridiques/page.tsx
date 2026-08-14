@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const categories = ["Logement", "Travail", "Famille", "Consommation", "Entreprise", "Administration", "Démarches"];
 const categorySlugs: Record<string, string> = { Logement:"logement", Travail:"travail", Famille:"famille", Consommation:"consommation", Entreprise:"entreprise", Administration:"administration" };
 const commonQuestions = [
-  ["Mon propriétaire ne rend pas ma caution : que faire ?", "/conseils-juridiques/depot-garantie-non-rendu"],
+  ["Mon propriétaire ne rend pas ma caution : que faire ?", "/conseils-juridiques/depot-de-garantie-non-restitue"],
   ["Mon salaire n'est pas payé : quels recours ?", "/conseils-juridiques/salaire-impaye"],
   ["Comment récupérer une facture impayée ?", "/impayes"],
   ["Comment contester un licenciement ?", "/conseils-juridiques/contester-licenciement"],
