@@ -85,9 +85,20 @@ export default function CategoryPage({ params }: { params: { category: string } 
     isPartOf: { "@type": "WebSite", name: "LEXIA", url: "https://lexiafrance.fr" },
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://lexiafrance.fr" },
+      { "@type": "ListItem", position: 2, name: "Conseils juridiques", item: "https://lexiafrance.fr/conseils-juridiques" },
+      { "@type": "ListItem", position: 3, name: config.label, item: `https://lexiafrance.fr/conseils-juridiques/categorie/${params.category}` },
+    ],
+  };
+
   return (
     <main style={{ minHeight: "100vh", background: "#f5f2eb", color: "#14243a", fontFamily: "Arial, sans-serif" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <header style={{ background: "#0b2340", color: "#fff", padding: "22px 20px" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
           <Link href="/" style={{ color: "#fff", textDecoration: "none", font: "700 30px Georgia" }}>LEXIA<span style={{ color: "#d7bb76" }}>.</span></Link>
