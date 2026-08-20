@@ -83,6 +83,12 @@ export default function CategoryPage({ params }: { params: { category: string } 
     url: `https://lexiafrance.fr/conseils-juridiques/categorie/${params.category}`,
     inLanguage: "fr-FR",
     isPartOf: { "@type": "WebSite", name: "LEXIA", url: "https://lexiafrance.fr" },
+    numberOfItems: guides.length,
+    hasPart: guides.map((guide) => ({
+      "@type": "Article",
+      name: guide.title,
+      url: `https://lexiafrance.fr/conseils-juridiques/${guide.slug}`,
+    })),
   };
 
   const breadcrumbSchema = {
