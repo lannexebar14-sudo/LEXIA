@@ -20,7 +20,8 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     description: guide.description,
     alternates: { canonical: `/conseils-juridiques/${guide.slug}` },
     robots: { index: true, follow: true },
-    openGraph: { type: "article", title: guide.title, description: guide.description, url: `/conseils-juridiques/${guide.slug}`, siteName: "LEXIA", locale: "fr_FR" },
+    openGraph: { type: "article", title: guide.title, description: guide.description, url: `/conseils-juridiques/${guide.slug}`, siteName: "LEXIA France", locale: "fr_FR", publishedTime: `${guide.updatedAt}T00:00:00Z`, modifiedTime: `${guide.updatedAt}T00:00:00Z` },
+    twitter: { card: "summary", title: guide.title, description: guide.description },
   };
 }
 
@@ -29,7 +30,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
   if (!guide) notFound();
   const related = allGuides.filter((item) => item.category === guide.category && item.slug !== guide.slug).slice(0, 4);
   const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: guide.faq.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) };
-  const articleSchema = { "@context": "https://schema.org", "@type": "Article", headline: guide.title, description: guide.description, dateModified: guide.updatedAt, datePublished: guide.updatedAt, inLanguage: "fr-FR", mainEntityOfPage: `https://lexiafrance.fr/conseils-juridiques/${guide.slug}`, author: { "@type": "Organization", name: "LEXIA", url: "https://lexiafrance.fr" }, publisher: { "@type": "Organization", name: "LEXIA", url: "https://lexiafrance.fr" } };
+  const articleSchema = { "@context": "https://schema.org", "@type": "Article", headline: guide.title, description: guide.description, dateModified: guide.updatedAt, datePublished: guide.updatedAt, inLanguage: "fr-FR", mainEntityOfPage: `https://lexiafrance.fr/conseils-juridiques/${guide.slug}`, author: { "@type": "Organization", name: "LEXIA France", url: "https://lexiafrance.fr" }, publisher: { "@type": "Organization", name: "LEXIA France", url: "https://lexiafrance.fr" } };
   const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Accueil", item: "https://lexiafrance.fr" }, { "@type": "ListItem", position: 2, name: "Conseils juridiques", item: "https://lexiafrance.fr/conseils-juridiques" }, { "@type": "ListItem", position: 3, name: guide.title, item: `https://lexiafrance.fr/conseils-juridiques/${guide.slug}` }] };
 
   return (
